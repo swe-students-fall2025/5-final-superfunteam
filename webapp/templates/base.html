@@ -14,6 +14,14 @@
                 <h1>🖨️ NYU Printer Status</h1>
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
+                    {% if current_user.is_authenticated %}
+                        <li class="user-info">
+                            <span class="user-name">👤 {{ current_user.name or current_user.netid }}</span>
+                        </li>
+                        <li><a href="{{ url_for('logout') }}" class="logout-btn">Logout</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('saml_login') }}" class="login-btn">Login with NYU NetID</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </nav>

@@ -44,6 +44,38 @@ services:
       retries: 3
       start_period: 40s
 
+  setup:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    container_name: nyu-printer-setup
+    command: sh -c "python db_schema.py && python seed_data.py"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/nyu_printers
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - printer-network
+    profiles:
+      - setup
+
+  setup-production:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    container_name: nyu-printer-setup-production
+    command: sh -c "python db_schema.py && python production_data.py"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/nyu_printers
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - printer-network
+    profiles:
+      - production-setup
+
 networks:
   printer-network:
     driver: bridge

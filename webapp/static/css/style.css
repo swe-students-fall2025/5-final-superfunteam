@@ -39,6 +39,7 @@ header ul {
     list-style: none;
     display: flex;
     gap: 2rem;
+    align-items: center;
 }
 
 header a {
@@ -46,6 +47,50 @@ header a {
     text-decoration: none;
     font-weight: 500;
     transition: color 0.3s;
+}
+
+header a:hover {
+    color: #667eea;
+}
+
+/* User Authentication Styles */
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-name {
+    color: #667eea;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 20px;
+}
+
+.login-btn, .logout-btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.login-btn {
+    background: #667eea;
+    color: white !important;
+}
+
+.login-btn:hover {
+    background: #5568d3;
+    color: white !important;
+}
+
+.logout-btn {
+    background: #e74c3c;
+    color: white !important;
+}
+
+.logout-btn:hover {
+    background: #c0392b;
+    color: white !important;
 }
 
 header a:hover {
@@ -254,6 +299,15 @@ footer p {
 
 .report-btn:hover {
     background: #5568d3;
+}
+
+.report-btn-disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+}
+
+.report-btn-disabled:hover {
+    background: #95a5a6;
 }
 
 /* Modal */
