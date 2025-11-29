@@ -1,0 +1,10 @@
+{
+    "idp": {
+        "entityId": "https://shibboleth.nyu.edu/idp/shibboleth",
+        "singleSignOnService": {
+            "url": "https://shibboleth.nyu.edu/idp/profile/SAML2/Redirect/SSO",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "x509cert": ""
+    }
+}

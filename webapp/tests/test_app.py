@@ -1,5 +1,5 @@
 import pytest
-from webapp.app import app
+from app import app
 from unittest.mock import MagicMock, patch
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def client():
 @pytest.fixture
 def mock_mongo():
     """Mock MongoDB connection"""
-    with patch('webapp.app.mongo') as mock:
+    with patch('app.mongo') as mock:
         yield mock
 
 def test_index_route(client, mock_mongo):

@@ -234,6 +234,12 @@ The project uses GitHub Actions for continuous integration and deployment:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Documentation
+
+- **Onboarding Guide**: See [ONBOARDING.md](./ONBOARDING.md) for sprint planning and task breakdown
+- **Database Schema**: See [webapp/README.md](./webapp/README.md) for database setup and schema documentation
+- **Deployment Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions and CI/CD setup
+
 ## License
 
 This project is part of an academic exercise for NYU's Software Engineering course.

@@ -81,85 +81,115 @@ webapp/
 
 When you start working, identify yourself as one of the following team members to get your specific tasks:
 
-1. **MongoDB Developer** (Connor Lee)
+1. **MongoDB Developer** (Zeba Shafi)
 2. **Backend Developer** (Zeba Shafi)
 3. **Frontend Developer** (Catherine Yu)
 4. **Deployment Engineer** (Evelynn)
 5. **Testing/QA Lead** (Jubilee)
+6. **Testing/QA Support** (Connor Lee)
 
 ### Task Breakdown by Priority
 
 #### Phase 1: Foundation (Must be completed first)
 These tasks have no dependencies and should be started immediately:
 
-**MongoDB Developer Tasks:**
-- [ ] Set up MongoDB schema for `printers` collection
-- [ ] Set up MongoDB schema for `reports` collection
-- [ ] Create indexes for efficient queries (printer_id, timestamp)
-- [ ] Write seed data script with sample NYU printer locations
-- [ ] Document database schema in `webapp/README.md`
+**MongoDB Developer Tasks (Zeba Shafi):**
+- [x] Set up MongoDB schema for `printers` collection
+- [x] Set up MongoDB schema for `reports` collection
+- [x] Create indexes for efficient queries (printer_id, timestamp)
+- [x] Write seed data script with sample NYU printer locations
+- [x] Document database schema in `webapp/README.md`
 
 **Deployment Engineer Tasks:**
-- [ ] Create `.github/workflows/webapp-ci.yml` for CI pipeline
-- [ ] Set up Docker Hub account and repository
-- [ ] Configure GitHub secrets (DOCKER_USERNAME, DOCKER_PASSWORD)
-- [ ] Test local Docker builds with `docker-compose up`
-- [ ] Document deployment process
+- [x] Create `.github/workflows/webapp-ci.yml` for CI pipeline
+- [x] Set up Docker Hub account and repository
+- [x] Configure GitHub secrets (DOCKER_USERNAME, DOCKER_PASSWORD)
+- [x] Test local Docker builds with `docker-compose up`
+- [x] Document deployment process
 
 #### Phase 2: Backend Development (Depends on MongoDB schema)
 Start these tasks once MongoDB schema is defined:
 
-**Backend Developer Tasks:**
-- [ ] Implement `/api/printers` GET endpoint (list all printers)
-- [ ] Implement `/api/printers/<id>` GET endpoint (get single printer)
-- [ ] Implement `/api/printers` POST endpoint (add new printer)
-- [ ] Implement `/api/printers/<id>` PUT endpoint (update printer info)
-- [ ] Implement `/api/printers/<id>` DELETE endpoint (delete printer)
-- [ ] Implement `/api/reports` POST endpoint (submit status report)
-- [ ] Implement `/api/reports` GET endpoint (get all reports)
-- [ ] Implement `/health` endpoint
-- [ ] Add proper error handling for all endpoints
-- [ ] Integrate with MongoDB collections
+**Backend Developer Tasks (Zeba Shafi):**
+- [x] Implement `/api/printers` GET endpoint (list all printers)
+- [x] Implement `/api/printers/<id>` GET endpoint (get single printer)
+- [x] Implement `/api/printers` POST endpoint (add new printer)
+- [x] Implement `/api/printers/<id>` PUT endpoint (update printer info)
+- [x] Implement `/api/printers/<id>` DELETE endpoint (delete printer)
+- [x] Implement `/api/reports` POST endpoint (submit status report)
+- [x] Implement `/api/reports` GET endpoint (get all reports)
+- [x] Implement `/health` endpoint
+- [x] Add proper error handling for all endpoints
+- [x] Integrate with MongoDB collections
+- [x] **NYU SSO Authentication:**
+  - [x] Add python3-saml and Flask-Login dependencies
+  - [x] Configure NYU Shibboleth/SAML settings (`saml/settings.json`)
+  - [x] Implement login routes (`/saml/login`, `/saml/acs`, `/logout`)
+  - [x] Add session management with Flask-Login
+  - [x] Protect `/api/reports` POST endpoint with `@login_required`
+  - [x] Auto-attribute reports to authenticated NetID
+  - [x] Document SAML setup in `webapp/SAML_SETUP.md`
 
 #### Phase 3: Frontend Development (Depends on Backend APIs)
 Start these tasks once backend endpoints are working:
 
-**Frontend Developer Tasks:**
-- [ ] Update `templates/index.html` with printer card layout
-- [ ] Implement printer status filtering (All, Available, Busy, Offline)
-- [ ] Create report submission modal with form
-- [ ] Add JavaScript for form validation
-- [ ] Implement auto-refresh functionality (30 seconds)
-- [ ] Style with `static/css/style.css` (responsive design)
-- [ ] Add loading states and error messages
-- [ ] Test UI with different screen sizes
-- [ ] Ensure accessibility standards
+**Frontend Developer Tasks (Catherine Yu):**
+- [x] Update `templates/index.html` with printer card layout
+- [x] Implement printer status filtering (All, Available, Busy, Offline)
+- [x] Create report submission modal with form
+- [x] Add JavaScript for form validation
+- [x] Implement auto-refresh functionality (30 seconds)
+- [x] Style with `static/css/style.css` (responsive design)
+- [x] Add loading states and error messages
+- [x] Test UI with different screen sizes
+- [x] Ensure accessibility standards
+- [x] **Authentication UI:**
+  - [x] Add Login/Logout buttons to navigation
+  - [x] Display authenticated user name in header
+  - [x] Disable report buttons when not authenticated
+  - [x] Style authentication elements
+- [ ] **BONUS:** Create admin interface for managing printers (add/edit/delete)
+- [ ] **BONUS:** Add CSV import functionality for bulk printer data
 
 #### Phase 4: Testing (Depends on Backend + Frontend)
 Start these tasks once features are implemented:
 
-**Testing/QA Lead Tasks:**
+**Testing/QA Lead Tasks (Jubilee):**
 - [ ] Write unit tests for all API endpoints in `tests/test_app.py`
 - [ ] Write tests for database operations
 - [ ] Write tests for error handling
 - [ ] Achieve minimum 80% code coverage
+- [ ] Document bugs and create issues
+
+**Testing/QA Support Tasks (Connor Lee):**
+- [ ] Write tests for NYU SSO authentication flows
 - [ ] Test Docker container builds
 - [ ] Perform manual testing of all features
 - [ ] Create test data for demonstrations
-- [ ] Document bugs and create issues
 - [ ] Verify all endpoints work in containerized environment
+- [ ] Test authentication in different scenarios (logged in/out)
+- [ ] Verify SAML metadata and configuration
+- [ ] Test production deployment (after deployment)
 
 #### Phase 5: Deployment & Integration (Final phase)
 Start these tasks once testing passes:
 
-**Deployment Engineer Tasks:**
+**Deployment Engineer Tasks (Evelynn):**
 - [ ] Push Docker image to Docker Hub
-- [ ] Create `.github/workflows/webapp-deploy.yml` for deployment
+- [x] Create `.github/workflows/webapp-deploy.yml` for deployment
 - [ ] Set up Digital Ocean droplet or app platform
 - [ ] Configure environment variables on Digital Ocean
 - [ ] Set up MongoDB Atlas or containerized MongoDB in production
+- [ ] **Configure NYU Shibboleth for production:**
+  - [ ] Contact NYU IT to register application as Service Provider
+  - [ ] Obtain NYU Shibboleth x509 certificate
+  - [ ] Update production domain in `webapp/saml/settings.json`
+  - [ ] Add certificate to `saml/settings.json` idp.x509cert field
+  - [ ] Generate SP certificates (optional but recommended)
+  - [ ] Provide SP metadata URL to NYU IT
 - [ ] Deploy application to Digital Ocean
 - [ ] Test production deployment
+- [ ] Test NYU SSO login in production
 - [ ] Update README with live deployment URL
 - [ ] Set up monitoring/health checks
 
@@ -182,7 +212,8 @@ Answer these questions each day:
 ```
 MongoDB Schema → Backend APIs → Frontend UI → Testing → Deployment
      ↓              ↓              ↓           ↓          ↓
-  Connor         Zeba        Catherine    Jubilee    Evelynn
+    Zeba          Zeba        Catherine    Jubilee    Evelynn
+                                           + Connor
 ```
 
 **Critical Path:** MongoDB → Backend → Frontend → Testing must be completed in order. Deployment setup can happen in parallel but deployment itself is last.
@@ -192,9 +223,10 @@ MongoDB Schema → Backend APIs → Frontend UI → Testing → Deployment
 **Tell the LLM:** "I am [Your Name], the [Your Role]. What are my tasks?"
 
 Example:
-- "I am Connor Lee, the MongoDB Developer. What are my tasks?"
-- "I am Zeba Shafi, the Backend Developer. What are my tasks?"
+- "I am Zeba Shafi, the MongoDB and Backend Developer. What are my tasks?"
 - "I am Catherine Yu, the Frontend Developer. What are my tasks?"
+- "I am Jubilee, the Testing/QA Lead. What are my tasks?"
+- "I am Connor Lee, the Testing/QA Support. What are my tasks?"
 - "I am Evelynn, the Deployment Engineer. What are my tasks?"
 - "I am Jubilee, the Testing/QA Lead. What are my tasks?"
 
