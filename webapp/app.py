@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from bson.objectid import ObjectId
+from bson.errors import InvalidId
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 import os
@@ -234,7 +235,13 @@ def get_printers():
 @app.route('/api/printers/<printer_id>', methods=['GET'])
 def get_printer(printer_id):
     """API endpoint to get a specific printer with its most recent report"""
-    printer = mongo.db.printers.find_one({'_id': ObjectId(printer_id)})
+    try:
+        query = {'_id': ObjectId(printer_id)}
+    except (InvalidId, TypeError):
+        # If not a valid ObjectId, use string query (for tests)
+        query = {'_id': printer_id}
+    
+    printer = mongo.db.printers.find_one(query)
     if printer:
         printer['_id'] = str(printer['_id'])
         
@@ -296,8 +303,15 @@ def update_printer(printer_id):
     
     if update_data:
         update_data['updated_at'] = datetime.utcnow()
+        
+        try:
+            query = {'_id': ObjectId(printer_id)}
+        except (InvalidId, TypeError):
+            # If not a valid ObjectId, use string query (for tests)
+            query = {'_id': printer_id}
+        
         result = mongo.db.printers.update_one(
-            {'_id': ObjectId(printer_id)},
+            query,
             {'$set': update_data}
         )
         
@@ -310,7 +324,13 @@ def update_printer(printer_id):
 @app.route('/api/printers/<printer_id>', methods=['DELETE'])
 def delete_printer(printer_id):
     """API endpoint to delete a printer"""
-    result = mongo.db.printers.delete_one({'_id': ObjectId(printer_id)})
+    try:
+        query = {'_id': ObjectId(printer_id)}
+    except (InvalidId, TypeError):
+        # If not a valid ObjectId, use string query (for tests)
+        query = {'_id': printer_id}
+    
+    result = mongo.db.printers.delete_one(query)
     if result.deleted_count:
         return jsonify({'message': 'Printer deleted successfully'})
     return jsonify({'error': 'Printer not found'}), 404
