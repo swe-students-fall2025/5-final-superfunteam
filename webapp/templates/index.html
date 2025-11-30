@@ -46,9 +46,15 @@
                     {% endif %}
                 </p>
             </div>
+            {% if current_user.is_authenticated %}
             <button class="report-btn" onclick="openReportModal('{{ printer._id }}', '{{ printer.name }}')">
                 📝 Report Status
             </button>
+            {% else %}
+            <button class="report-btn report-btn-disabled" title="Login required to report status">
+                🔒 Login to Report
+            </button>
+            {% endif %}
         </div>
         {% endfor %}
     {% else %}
