@@ -447,7 +447,7 @@ MONGO_URI=mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/nyu_printers?retryW
 curl https://your-app-url/health
 
 # Expected response:
-{"status": "ok"}
+{"status": "healthy", "database": "connected"}
 ```
 
 ### View Logs
