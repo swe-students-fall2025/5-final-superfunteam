@@ -90,14 +90,14 @@ jobs:
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
 
-    - name: Test Docker image dependencies
-      run: docker run --rm nyu-printer-webapp:test python -c "import flask; import pymongo; print('Dependencies OK')"
+            - name: Test Docker image dependencies
+              run: docker run --rm nyu-printer-webapp:test python -c "import flask; import pymongo; print('Dependencies OK')"
 
-    - name: Run tests inside Docker container
-      working-directory: ./webapp
-      run: docker run --rm -v ${{ github.workspace }}/webapp:/app -w /app nyu-printer-webapp:test pytest tests/ -v --cov=app --cov-report=term-missing
+            - name: Run tests inside Docker container
+              working-directory: ./webapp
+              run: docker run --rm -v ${{ github.workspace }}/webapp:/app -w /app nyu-printer-webapp:test pytest tests/ -v --cov=app --cov-report=term-missing
 
-    docker-push:
+  docker-push:
         runs-on: ubuntu-latest
         needs: docker-build-and-test
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
