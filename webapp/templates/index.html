@@ -48,11 +48,11 @@
             </div>
             {% if current_user.is_authenticated %}
             <button class="report-btn" onclick="openReportModal('{{ printer._id }}', '{{ printer.name }}')">
-                📝 Report Status
+                Report Status
             </button>
             {% else %}
             <button class="report-btn report-btn-disabled" title="Login required to report status">
-                🔒 Login to Report
+                Login to Report
             </button>
             {% endif %}
         </div>
@@ -83,11 +83,11 @@
             <label for="status">Status:</label>
             <select id="status" name="status" required>
                 <option value="">Select status...</option>
-                <option value="available">✅ Available</option>
-                <option value="busy">⏳ Busy/In Use</option>
-                <option value="offline">❌ Offline/Not Working</option>
-                <option value="out_of_paper">📄 Out of Paper</option>
-                <option value="out_of_toner">🖨️ Out of Toner</option>
+                <option value="available">Available</option>
+                <option value="busy">Busy/In Use</option>
+                <option value="offline">Offline/Not Working</option>
+                <option value="out_of_paper">Out of Paper</option>
+                <option value="out_of_toner">Out of Toner</option>
             </select>
             
             <label for="paper_level">Paper Level (%):</label>

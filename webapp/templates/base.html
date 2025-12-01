@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +8,21 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <header>
         <nav>
             <div class="container">
-                <h1>🖨️ NYU Printer Status</h1>
+                <h1>NYU Printer Status</h1>
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
                     {% if current_user.is_authenticated %}
-                        <li class="user-info">
-                            <span class="user-name">👤 {{ current_user.name or current_user.netid }}</span>
-                        </li>
-                        <li><a href="{{ url_for('logout') }}" class="logout-btn">Logout</a></li>
+                    <li class="user-info">
+                        <span class="user-name">{{ current_user.netid }}</span>
+                    </li>
+                    <li><a href="{{ url_for('logout') }}" class="logout-btn">Logout</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('saml_login') }}" class="login-btn">Login with NYU NetID</a></li>
+                    <li><a href="{{ url_for('login_page') }}" class="login-btn">Login</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -40,4 +42,5 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

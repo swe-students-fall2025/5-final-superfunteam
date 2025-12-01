@@ -32,7 +32,7 @@ def create_collections_and_indexes():
     
     if "printers" not in db.list_collection_names():
         db.create_collection("printers")
-        print("✓ Created 'printers' collection")
+        print("Created 'printers' collection")
     
     # Create indexes for printers collection
     printers_indexes = [
@@ -78,7 +78,7 @@ def create_collections_and_indexes():
     db.reports.create_index([("status", ASCENDING)])
     print("✓ Created index on reports.status")
     
-    print("\n✅ Database schema setup complete!")
+    print("\nDatabase schema setup complete!")
     print(f"Database: {db.name}")
     print(f"Collections: {', '.join(db.list_collection_names())}")
 

@@ -27,7 +27,7 @@ services:
     container_name: nyu-printer-webapp
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       - MONGO_URI=mongodb://mongodb:27017/nyu_printers
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
