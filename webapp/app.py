@@ -187,15 +187,17 @@ def index():
 
     return render_template("index.html", printers=printers)
 
-
 @app.route("/api/printers", methods=["GET"])
 def get_printers():
     """API endpoint to get all printers"""
-    printers = list(mongo.db.printers.find())
-    # Convert ObjectId to string for JSON serialization
-    for printer in printers:
-        printer["_id"] = str(printer["_id"])
-    return jsonify(printers)
+    try:
+        printers = list(mongo.db.printers.find())
+
+        for printer in printers:
+            printer["_id"] = str(printer["_id"])
+        return jsonify(printers)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/printers/<printer_id>", methods=["GET"])
@@ -243,6 +245,10 @@ def get_printer(printer_id):
 def add_printer():
     """API endpoint to add a new printer"""
     data = request.get_json()
+
+    if not data or "name" not in data or "location" not in data:
+        return jsonify({"error": "Missing required fields"}), 400
+    
     printer = {
         "name": data.get("name"),
         "location": data.get("location"),
@@ -250,9 +256,12 @@ def add_printer():
         "floor": data.get("floor"),
         "created_at": datetime.utcnow(),
     }
-    result = mongo.db.printers.insert_one(printer)
-    printer["_id"] = str(result.inserted_id)
-    return jsonify(printer), 201
+    try:
+        result = mongo.db.printers.insert_one(printer)
+        printer["_id"] = str(result.inserted_id)
+        return jsonify(printer), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/printers/<printer_id>", methods=["PUT"])
@@ -261,14 +270,10 @@ def update_printer(printer_id):
     data = request.get_json()
     update_data = {}
 
-    if "name" in data:
-        update_data["name"] = data["name"]
-    if "location" in data:
-        update_data["location"] = data["location"]
-    if "building" in data:
-        update_data["building"] = data["building"]
-    if "floor" in data:
-        update_data["floor"] = data["floor"]
+    if "status" in data:
+        update_data["status"] = data["status"]
+    if "paper_level" in data:
+        update_data["paper_level"] = data["paper_level"]
 
     if update_data:
         update_data["updated_at"] = datetime.utcnow()
@@ -279,8 +284,11 @@ def update_printer(printer_id):
             # If not a valid ObjectId, use string query (for tests)
             query = {"_id": printer_id}
 
-        result = mongo.db.printers.update_one(query, {"$set": update_data})
-
+        try:
+            result = mongo.db.printers.update_one(query, {"$set": update_data})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
         if result.matched_count:
             return jsonify({"message": "Printer updated successfully"})
         return jsonify({"error": "Printer not found"}), 404
@@ -296,8 +304,11 @@ def delete_printer(printer_id):
     except (InvalidId, TypeError):
         # If not a valid ObjectId, use string query (for tests)
         query = {"_id": printer_id}
-
-    result = mongo.db.printers.delete_one(query)
+    try:
+        result = mongo.db.printers.delete_one(query)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
     if result.deleted_count:
         return jsonify({"message": "Printer deleted successfully"})
     return jsonify({"error": "Printer not found"}), 404
