@@ -39,7 +39,7 @@ jobs:
         cache-to: type=gha,mode=max
         
     - name: Deploy to Digital Ocean App Platform
-      if: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN != '' }}
+      if: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       uses: digitalocean/app_action@v1.1.5
       with:
         app_name: nyu-printer-status
