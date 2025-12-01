@@ -87,6 +87,7 @@ jobs:
         context: ./webapp
         file: ./webapp/Dockerfile
         push: false
+        load: true
         tags: nyu-printer-webapp:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
