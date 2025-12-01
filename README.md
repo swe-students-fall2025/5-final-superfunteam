@@ -8,10 +8,10 @@ A real-time, community-driven monitoring system that reports on the operational 
 ## Team Members
 
 - [Zeba Shafi](https://github.com/Zeba-Shafi)
-- [Jubilee](https://github.com/MajesticSeagull26)
+- [Jubilee Tang](https://github.com/MajesticSeagull26)
 - [Connor Lee](https://github.com/Connorlee487)
 - [Catherine Yu](https://github.com/catherineyu2014)
-- [Evelynn](https://github.com/evemak)
+- [Evelynn Mak](https://github.com/evemak)
 
 ## Prerequisites
 
