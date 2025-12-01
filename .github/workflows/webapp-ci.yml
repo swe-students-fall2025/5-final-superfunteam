@@ -96,7 +96,7 @@ jobs:
       run: docker run --rm nyu-printer-webapp:test python -c "import flask; import pymongo; print('Dependencies OK')"
 
     - name: Run tests inside Docker
-      run: docker run --rm nyu-printer-webapp:test pytest --cov=.
+      run: docker run --rm -w /app nyu-printer-webapp:test pytest tests/ -v --cov=app --cov-report=term-missing
 
   docker-push:
     runs-on: ubuntu-latest
