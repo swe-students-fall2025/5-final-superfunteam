@@ -17,7 +17,6 @@
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
                     <li><a href="{{ url_for('add_printer_page') }}">Add Printer</a></li>
-                    <li><a href="{{ url_for('api_docs') }}">API Docs</a></li>
                     {% if current_user.is_authenticated %}
                     <li class="user-info">
                         <span class="user-name">{{ current_user.netid }}</span>

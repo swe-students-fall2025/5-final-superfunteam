@@ -194,11 +194,6 @@ def add_printer_page():
     return render_template("add_printer.html")
 
 
-@app.route("/api-docs")
-def api_docs():
-    """API documentation page showing all available endpoints"""
-    return render_template("api_docs.html")
-
 @app.route("/api/printers", methods=["GET"])
 def get_printers():
     """API endpoint to get all printers"""
