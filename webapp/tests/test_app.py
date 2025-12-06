@@ -3,6 +3,7 @@ from app import app
 from unittest.mock import MagicMock, patch
 from app import load_user, mongo, User
 from bson import ObjectId
+from datetime import datetime
 
 
 @pytest.fixture
@@ -619,3 +620,244 @@ def test_map_page_empty(client, mock_mongo):
     assert response.status_code == 200
     # Check that the response contains the no spaces message
     assert b'No study spaces found' in response.data or b'Study Spaces' in response.data
+
+def test_add_space_page(client):
+    """Test the /add-space route"""
+    response = client.get('/add-space')
+    assert response.status_code == 200
+    assert b'Add New Study Space' in response.data
+
+def test_get_current_user(client, mock_mongo):
+    """Test GET /api/user endpoint"""
+    with patch('app.current_user') as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.email = 'test@nyu.edu'
+        mock_user.netid = 'test123'
+        
+        response = client.get('/api/user')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['email'] == 'test@nyu.edu'
+        assert data['netid'] == 'test123'
+
+def test_validate_nyu_email():
+    """Test validate_nyu_email helper function"""
+    from app import validate_nyu_email
+    
+    assert validate_nyu_email('test@nyu.edu') == True
+    assert validate_nyu_email('user@nyu.edu') == True
+    assert validate_nyu_email('test@gmail.com') == False
+    assert validate_nyu_email('invalid') == False
+    assert validate_nyu_email('test@nyu.com') == False
+
+def test_index_route_with_reviews(client, mock_mongo):
+    """Test index route with spaces that have reviews"""
+    mock_space = {
+        '_id': ObjectId(),
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor'
+    }
+    mock_mongo.db.study_spaces.find.return_value = [mock_space]
+    
+    mock_reviews = [
+        {
+            '_id': ObjectId(),
+            'space_id': str(mock_space['_id']),
+            'rating': 4,
+            'silence': 5,
+            'crowdedness': 2,
+            'review': 'Great space!',
+            'reported_by': 'test123',
+            'timestamp': datetime.utcnow()
+        },
+        {
+            '_id': ObjectId(),
+            'space_id': str(mock_space['_id']),
+            'rating': 5,
+            'silence': 4,
+            'crowdedness': 3,
+            'review': 'Excellent!',
+            'reported_by': 'test456',
+            'timestamp': datetime.utcnow()
+        }
+    ]
+    
+    mock_cursor = MagicMock()
+    mock_cursor.sort.return_value = mock_reviews
+    mock_mongo.db.reviews.find.return_value = mock_cursor
+    
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b'Bobst Library' in response.data
+
+def test_add_space_invalid_ratings(client, mock_mongo):
+    """Test add_space with invalid rating values"""
+    mock_result = MagicMock()
+    mock_result.inserted_id = ObjectId()
+    mock_mongo.db.study_spaces.insert_one.return_value = mock_result
+    
+    space_data = {
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor',
+        'silence': 6,  # Invalid: > 5
+        'crowdedness': 2
+    }
+    
+    with patch('app.current_user') as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.netid = 'test123'
+        mock_user.email = 'test123@nyu.edu'
+        
+        response = client.post('/api/spaces', json=space_data)
+        assert response.status_code == 201
+        # Space should be created but review should not (invalid ratings)
+        mock_mongo.db.reviews.insert_one.assert_not_called()
+
+def test_add_space_invalid_rating_type(client, mock_mongo):
+    """Test add_space with invalid rating type"""
+    mock_result = MagicMock()
+    mock_result.inserted_id = ObjectId()
+    mock_mongo.db.study_spaces.insert_one.return_value = mock_result
+    
+    space_data = {
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor',
+        'silence': 'invalid',  # Invalid type
+        'crowdedness': 2
+    }
+    
+    with patch('app.current_user') as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.netid = 'test123'
+        mock_user.email = 'test123@nyu.edu'
+        
+        response = client.post('/api/spaces', json=space_data)
+        assert response.status_code == 201
+        # Review should not be created due to invalid type
+        mock_mongo.db.reviews.insert_one.assert_not_called()
+
+def test_update_space_no_valid_fields(client, mock_mongo):
+    """Test update_space with no valid fields to update"""
+    update_data = {
+        'invalid_field': 'value'
+    }
+    
+    response = client.put('/api/spaces/507f1f77bcf86cd799439012', json=update_data)
+    assert response.status_code == 400
+    data = response.get_json()
+    assert "error" in data
+    assert data["error"] == "No valid fields to update"
+
+def test_get_space_with_reviews(client, mock_mongo):
+    """Test GET /api/spaces/<id> with reviews"""
+    space_id = str(ObjectId())
+    mock_space = {
+        '_id': ObjectId(space_id),
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor'
+    }
+    mock_mongo.db.study_spaces.find_one.return_value = mock_space
+    
+    mock_reviews = [
+        {
+            '_id': ObjectId(),
+            'space_id': space_id,
+            'rating': 4,
+            'silence': 5,
+            'crowdedness': 2,
+            'review': 'Great!',
+            'reported_by': 'test123',
+            'timestamp': datetime.utcnow()
+        }
+    ]
+    
+    mock_cursor = MagicMock()
+    mock_cursor.sort.return_value = mock_cursor
+    mock_cursor.limit.return_value = mock_reviews
+    mock_mongo.db.reviews.find.return_value = mock_cursor
+    
+    response = client.get(f'/api/spaces/{space_id}')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['building'] == 'Bobst Library'
+    assert 'reviews' in data
+    assert len(data['reviews']) == 1
+
+def test_get_space_with_no_reviews(client, mock_mongo):
+    """Test GET /api/spaces/<id> with no reviews"""
+    space_id = str(ObjectId())
+    mock_space = {
+        '_id': ObjectId(space_id),
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor'
+    }
+    mock_mongo.db.study_spaces.find_one.return_value = mock_space
+    
+    mock_cursor = MagicMock()
+    mock_cursor.sort.return_value = mock_cursor
+    mock_cursor.limit.return_value = []
+    mock_mongo.db.reviews.find.return_value = mock_cursor
+    
+    response = client.get(f'/api/spaces/{space_id}')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['building'] == 'Bobst Library'
+    assert data['review_count'] == 0
+    assert data['avg_rating'] == 0
+
+def test_update_space_not_found(client, mock_mongo):
+    """Test update_space when space is not found"""
+    mock_result = MagicMock()
+    mock_result.matched_count = 0
+    mock_mongo.db.study_spaces.update_one.return_value = mock_result
+    
+    update_data = {
+        'building': 'Updated Building'
+    }
+    
+    response = client.put('/api/spaces/507f1f77bcf86cd799439012', json=update_data)
+    assert response.status_code == 404
+    data = response.get_json()
+    assert "error" in data
+    assert data["error"] == "Study space not found"
+
+def test_submit_review_invalid_rating_type(client, mock_mongo):
+    """Test review submission with invalid rating type"""
+    space_id = str(ObjectId())
+    mock_mongo.db.study_spaces.find_one.return_value = {"_id": ObjectId(space_id)}
+    
+    with patch('app.current_user') as mock_current_user:
+        mock_current_user.netid = "test123"
+        mock_current_user.email = "test123@nyu.edu"
+        
+        response = client.post('/api/reviews', json={
+            "space_id": space_id,
+            "rating": "invalid",  # Invalid type
+            "silence": 5,
+            "crowdedness": 2
+        })
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+def test_submit_review_rating_zero(client, mock_mongo):
+    """Test review submission with rating of 0 (below valid range)"""
+    space_id = str(ObjectId())
+    mock_mongo.db.study_spaces.find_one.return_value = {"_id": ObjectId(space_id)}
+    
+    with patch('app.current_user') as mock_current_user:
+        mock_current_user.netid = "test123"
+        mock_current_user.email = "test123@nyu.edu"
+        
+        response = client.post('/api/reviews', json={
+            "space_id": space_id,
+            "rating": 0,  # Invalid: < 1
+            "silence": 5,
+            "crowdedness": 2
+        })
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "must be between 1 and 5" in data["error"]
