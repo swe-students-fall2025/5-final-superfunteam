@@ -16,6 +16,7 @@
                 <h1>NYU Study Space Status</h1>
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('map_page') }}">Map</a></li>
                     <li><a href="{{ url_for('add_space_page') }}">Add Study Space</a></li>
                     {% if current_user.is_authenticated %}
                     <li class="user-info">

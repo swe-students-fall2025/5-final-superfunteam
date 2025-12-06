@@ -6,12 +6,30 @@ Populates the database with sample NYU study space locations
 from pymongo import MongoClient
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def get_db_connection():
     """Get MongoDB connection"""
-    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/nyu_study_spaces")
-    client = MongoClient(MONGO_URI)
-    return client.get_database()
+    mongo_uri = os.getenv("MONGO_URI")
+    if not mongo_uri:
+        mongodb_host = os.getenv("MONGODB_HOST", "localhost")
+        mongodb_port = os.getenv("MONGODB_PORT", "27017")
+        mongo_uri = f"mongodb://{mongodb_host}:{mongodb_port}/"
+    
+    # Get database name from environment or use default
+    database_name = os.getenv("MONGODB_DATABASE", "proj4")
+    
+    try:
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+        # Test the connection
+        db = client[database_name]
+        return db
+    except Exception as e:
+        print(f"Error connecting to MongoDB: {e}")
+        raise
 
 def seed_study_spaces():
     """Insert sample NYU study space locations into the database"""
