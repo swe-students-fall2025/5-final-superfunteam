@@ -1,3 +1,4 @@
+from typing import Any
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_pymongo import PyMongo
 from flask_login import (
@@ -15,13 +16,29 @@ import os
 from datetime import datetime
 from functools import wraps
 import re
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
 # MongoDB configuration
-app.config["MONGO_URI"] = os.environ.get(
-    "MONGO_URI", "mongodb://localhost:27017/nyu_study_spaces"
-)
+mongo_uri = os.getenv("MONGO_URI")
+if not mongo_uri:
+    mongodb_host = os.getenv("MONGODB_HOST", "localhost")
+    mongodb_port = os.getenv("MONGODB_PORT", "27017")
+    mongo_uri = f"mongodb://{mongodb_host}:{mongodb_port}/"
+
+# Get database name from environment or use default
+database_name = os.getenv("MONGODB_DATABASE", "proj4")
+
+# Construct full URI with database name if not already included
+# If URI ends with /, add database name. Otherwise, assume it's already in the URI (like Atlas URIs)
+if mongo_uri.endswith("/"):
+    mongo_uri = f"{mongo_uri}{database_name}"
+
+app.config["MONGO_URI"] = mongo_uri
 app.config["SECRET_KEY"] = os.environ.get(
     "SECRET_KEY", "dev-secret-key-change-in-production"
 )
@@ -202,11 +219,25 @@ def add_space_page():
     return render_template("add_space.html")
 
 
+@app.route("/map")
+def map_page():
+    """Page showing study spaces on Google Maps"""
+    spaces = list(mongo.db.study_spaces.find())
+    
+    # Format spaces for display
+    for space in spaces:
+        space["_id"] = str(space["_id"])
+        # Create a search query for Google Maps (building + sublocation)
+        space["map_query"] = f"{space.get('building', '')} {space.get('sublocation', '')} NYU"
+    
+    return render_template("map.html", spaces=spaces)
+
+
 @app.route("/api/spaces", methods=["GET"])
 def get_spaces():
     """API endpoint to get all study spaces"""
     try:
-        spaces = list(mongo.db.study_spaces.find())
+        spaces = list[Any](mongo.db.study_spaces.find())
 
         for space in spaces:
             space["_id"] = str(space["_id"])
@@ -272,10 +303,41 @@ def add_space():
         "building": data.get("building"),
         "sublocation": data.get("sublocation"),
         "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
     }
     try:
         result = mongo.db.study_spaces.insert_one(space)
         space["_id"] = str(result.inserted_id)
+        space_id = str(result.inserted_id)
+        
+        # If silence and crowdedness are provided and user is authenticated, create initial review
+        silence = data.get("silence")
+        crowdedness = data.get("crowdedness")
+        if silence is not None and crowdedness is not None and current_user.is_authenticated:
+            try:
+                silence = int(silence)
+                crowdedness = int(crowdedness)
+                
+                if 1 <= silence <= 5 and 1 <= crowdedness <= 5:
+                    # Create initial review with default rating (average of silence and crowdedness)
+                    # or use a default rating of 3
+                    initial_rating = 3  # Default rating
+                    
+                    review = {
+                        "space_id": space_id,
+                        "rating": initial_rating,
+                        "silence": silence,
+                        "crowdedness": crowdedness,
+                        "review": f"Initial review for {data.get('building')} - {data.get('sublocation')}",
+                        "reported_by": current_user.netid,
+                        "reporter_email": current_user.email,
+                        "timestamp": datetime.utcnow(),
+                    }
+                    mongo.db.reviews.insert_one(review)
+            except (ValueError, TypeError):
+                # Invalid values, skip review creation
+                pass
+        
         return jsonify(space), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500

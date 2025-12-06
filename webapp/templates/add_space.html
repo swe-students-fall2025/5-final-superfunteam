@@ -20,6 +20,38 @@
             <input type="text" id="sublocation" name="sublocation" required placeholder="e.g., 2nd Floor Study Area">
         </div>
         
+        <div class="form-group">
+            <label for="silence">Silence Level (1-5, 5 = very quiet):</label>
+            <div class="star-rating">
+                <input type="radio" id="silence5" name="silence" value="5">
+                <label for="silence5">★</label>
+                <input type="radio" id="silence4" name="silence" value="4">
+                <label for="silence4">★</label>
+                <input type="radio" id="silence3" name="silence" value="3">
+                <label for="silence3">★</label>
+                <input type="radio" id="silence2" name="silence" value="2">
+                <label for="silence2">★</label>
+                <input type="radio" id="silence1" name="silence" value="1">
+                <label for="silence1">★</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="crowdedness">Crowdedness (1-5, 5 = very crowded):</label>
+            <div class="star-rating">
+                <input type="radio" id="crowdedness5" name="crowdedness" value="5">
+                <label for="crowdedness5">★</label>
+                <input type="radio" id="crowdedness4" name="crowdedness" value="4">
+                <label for="crowdedness4">★</label>
+                <input type="radio" id="crowdedness3" name="crowdedness" value="3">
+                <label for="crowdedness3">★</label>
+                <input type="radio" id="crowdedness2" name="crowdedness" value="2">
+                <label for="crowdedness2">★</label>
+                <input type="radio" id="crowdedness1" name="crowdedness" value="1">
+                <label for="crowdedness1">★</label>
+            </div>
+        </div>
+        
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Add Study Space</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
@@ -141,6 +173,17 @@
             building: document.getElementById('building').value.trim(),
             sublocation: document.getElementById('sublocation').value.trim()
         };
+        
+        // Add optional silence and crowdedness ratings if selected
+        const silenceSelected = document.querySelector('input[name="silence"]:checked');
+        const crowdednessSelected = document.querySelector('input[name="crowdedness"]:checked');
+        
+        if (silenceSelected) {
+            formData.silence = parseInt(silenceSelected.value);
+        }
+        if (crowdednessSelected) {
+            formData.crowdedness = parseInt(crowdednessSelected.value);
+        }
         
         // Validate required fields
         if (!formData.building || !formData.sublocation) {

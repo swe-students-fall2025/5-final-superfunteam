@@ -9,7 +9,7 @@ INSTRUCTIONS:
    - Student centers
    - Residence halls
    
-2. Replace the sample data below with real printer information
+2. Replace the sample data below with real printer information 
 
 3. Run this script ONCE during production deployment:
    docker-compose run --rm setup-production
@@ -21,23 +21,34 @@ INSTRUCTIONS:
 from pymongo import MongoClient
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def get_db_connection():
     """Get MongoDB connection"""
-    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/nyu_printers")
-    client = MongoClient(MONGO_URI)
-    return client.get_database()
+    mongo_uri = os.getenv("MONGO_URI")
+    if not mongo_uri:
+        mongodb_host = os.getenv("MONGODB_HOST", "localhost")
+        mongodb_port = os.getenv("MONGODB_PORT", "27017")
+        mongo_uri = f"mongodb://{mongodb_host}:{mongodb_port}/"
+    
+    # Get database name from environment or use default
+    database_name = os.getenv("MONGODB_DATABASE", "proj4")
+    
+    try:
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+        # Test the connection
+        db = client[database_name]
+        return db
+    except Exception as e:
+        print(f"Error connecting to MongoDB: {e}")
+        raise
 
 def insert_production_printers():
     """Insert real NYU printer locations into the database"""
     db = get_db_connection()
-    
-    # ============================================================
-    # REPLACE THIS DATA WITH ACTUAL NYU PRINTER LOCATIONS
-    # ============================================================
-    # TODO: Research and verify these printer locations
-    # TODO: Get printer model numbers and exact room numbers
-    # TODO: Contact NYU IT for official printer list if available
     
     production_printers = [
         # Bobst Library
