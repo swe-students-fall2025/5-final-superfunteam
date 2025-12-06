@@ -134,6 +134,69 @@ def test_add_space_api_fail(client, mock_mongo):
     assert "error" in data
     assert data["error"] == "DB failure"
 
+def test_add_space_api_with_ratings(client, mock_mongo):
+    """Test POST /api/spaces endpoint with silence and crowdedness ratings"""
+    mock_result = MagicMock()
+    mock_result.inserted_id = ObjectId()
+    mock_mongo.db.study_spaces.insert_one.return_value = mock_result
+    
+    # Mock review insert
+    mock_review_result = MagicMock()
+    mock_review_result.inserted_id = ObjectId()
+    mock_mongo.db.reviews.insert_one.return_value = mock_review_result
+    
+    space_data = {
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor Study Area',
+        'silence': 4,
+        'crowdedness': 2
+    }
+    
+    # Mock current_user for authenticated user
+    with patch('app.current_user') as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.netid = 'test123'
+        mock_user.email = 'test123@nyu.edu'
+        
+        response = client.post('/api/spaces', json=space_data)
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data['building'] == 'Bobst Library'
+        assert data['sublocation'] == '2nd Floor Study Area'
+        
+        # Verify review was created
+        mock_mongo.db.reviews.insert_one.assert_called_once()
+        call_args = mock_mongo.db.reviews.insert_one.call_args[0][0]
+        assert call_args['silence'] == 4
+        assert call_args['crowdedness'] == 2
+        assert call_args['rating'] == 3
+        assert call_args['reported_by'] == 'test123'
+
+def test_add_space_api_with_ratings_not_authenticated(client, mock_mongo):
+    """Test POST /api/spaces with ratings but user not authenticated - should not create review"""
+    mock_result = MagicMock()
+    mock_result.inserted_id = ObjectId()
+    mock_mongo.db.study_spaces.insert_one.return_value = mock_result
+    
+    space_data = {
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor Study Area',
+        'silence': 4,
+        'crowdedness': 2
+    }
+    
+    # Mock current_user for unauthenticated user
+    with patch('app.current_user') as mock_user:
+        mock_user.is_authenticated = False
+        
+        response = client.post('/api/spaces', json=space_data)
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data['building'] == 'Bobst Library'
+        
+        # Verify review was NOT created
+        mock_mongo.db.reviews.insert_one.assert_not_called()
+
 def test_update_space_api(client, mock_mongo):
     """Test PUT /api/spaces/<id> endpoint"""
     mock_result = MagicMock()
@@ -526,3 +589,33 @@ def test_get_reviews_filtered_by_space(client, mock_mongo):
     assert isinstance(data, list)
     assert len(data) == 1
     assert data[0]['space_id'] == space_id
+
+def test_map_page_route(client, mock_mongo):
+    """Test the /map route"""
+    mock_spaces = [
+        {
+            '_id': ObjectId(),
+            'building': 'Bobst Library',
+            'sublocation': '2nd Floor Study Area'
+        },
+        {
+            '_id': ObjectId(),
+            'building': 'Kimmel Center',
+            'sublocation': 'Student Lounge'
+        }
+    ]
+    mock_mongo.db.study_spaces.find.return_value = mock_spaces
+    
+    response = client.get('/map')
+    assert response.status_code == 200
+    # Check that the response contains HTML
+    assert b'Study Spaces' in response.data
+
+def test_map_page_empty(client, mock_mongo):
+    """Test the /map route with no spaces"""
+    mock_mongo.db.study_spaces.find.return_value = []
+    
+    response = client.get('/map')
+    assert response.status_code == 200
+    # Check that the response contains the no spaces message
+    assert b'No study spaces found' in response.data or b'Study Spaces' in response.data
