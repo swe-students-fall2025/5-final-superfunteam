@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 # MongoDB configuration
 app.config["MONGO_URI"] = os.environ.get(
-    "MONGO_URI", "mongodb://localhost:27017/nyu_printers"
+    "MONGO_URI", "mongodb://localhost:27017/nyu_study_spaces"
 )
 app.config["SECRET_KEY"] = os.environ.get(
     "SECRET_KEY", "dev-secret-key-change-in-production"
@@ -161,217 +161,239 @@ def logout():
 
 @app.route("/")
 def index():
-    """Home page showing all printer statuses based on most recent user reports"""
-    printers = list(mongo.db.printers.find())
+    """Home page showing all study spaces with their average ratings"""
+    spaces = list(mongo.db.study_spaces.find())
 
-    # Get the most recent report for each printer
-    for printer in printers:
-        reports = list(
-            mongo.db.reports.find({"printer_id": str(printer["_id"])})
+    # Get average ratings and recent review for each space
+    for space in spaces:
+        reviews = list(
+            mongo.db.reviews.find({"space_id": str(space["_id"])})
             .sort("timestamp", -1)
-            .limit(1)
         )
 
-        if reports:
-            printer["status"] = reports[0]["status"]
-            printer["paper_level"] = reports[0].get("paper_level", 0)
-            printer["toner_level"] = reports[0].get("toner_level", 0)
-            printer["last_updated"] = reports[0]["timestamp"]
-            printer["reported_by"] = reports[0].get("reported_by", "Anonymous")
+        if reviews:
+            # Calculate averages
+            avg_rating = sum(r["rating"] for r in reviews) / len(reviews)
+            avg_silence = sum(r["silence"] for r in reviews) / len(reviews)
+            avg_crowdedness = sum(r["crowdedness"] for r in reviews) / len(reviews)
+            
+            space["avg_rating"] = round(avg_rating, 1)
+            space["avg_silence"] = round(avg_silence, 1)
+            space["avg_crowdedness"] = round(avg_crowdedness, 1)
+            space["review_count"] = len(reviews)
+            space["last_updated"] = reviews[0]["timestamp"]
+            space["last_review"] = reviews[0].get("review", "")
+            space["reported_by"] = reviews[0].get("reported_by", "Anonymous")
         else:
-            printer["status"] = "unknown"
-            printer["paper_level"] = 0
-            printer["toner_level"] = 0
-            printer["last_updated"] = None
-            printer["reported_by"] = None
+            space["avg_rating"] = 0
+            space["avg_silence"] = 0
+            space["avg_crowdedness"] = 0
+            space["review_count"] = 0
+            space["last_updated"] = None
+            space["last_review"] = ""
+            space["reported_by"] = None
 
-    return render_template("index.html", printers=printers)
-
-
-@app.route("/add-printer")
-def add_printer_page():
-    """Page for manually adding a new printer"""
-    return render_template("add_printer.html")
+    return render_template("index.html", spaces=spaces)
 
 
-@app.route("/api/printers", methods=["GET"])
-def get_printers():
-    """API endpoint to get all printers"""
+@app.route("/add-space")
+def add_space_page():
+    """Page for manually adding a new study space"""
+    return render_template("add_space.html")
+
+
+@app.route("/api/spaces", methods=["GET"])
+def get_spaces():
+    """API endpoint to get all study spaces"""
     try:
-        printers = list(mongo.db.printers.find())
+        spaces = list(mongo.db.study_spaces.find())
 
-        for printer in printers:
-            printer["_id"] = str(printer["_id"])
-        return jsonify(printers)
+        for space in spaces:
+            space["_id"] = str(space["_id"])
+        return jsonify(spaces)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/printers/<printer_id>", methods=["GET"])
-def get_printer(printer_id):
-    """API endpoint to get a specific printer with its most recent report"""
+@app.route("/api/spaces/<space_id>", methods=["GET"])
+def get_space(space_id):
+    """API endpoint to get a specific study space with its reviews"""
     try:
-        query = {"_id": ObjectId(printer_id)}
+        query = {"_id": ObjectId(space_id)}
     except (InvalidId, TypeError):
         # If not a valid ObjectId, use string query (for tests)
-        query = {"_id": printer_id}
+        query = {"_id": space_id}
 
-    printer = mongo.db.printers.find_one(query)
-    if printer:
-        printer["_id"] = str(printer["_id"])
+    space = mongo.db.study_spaces.find_one(query)
+    if space:
+        space["_id"] = str(space["_id"])
 
-        # Get most recent report
-        recent_report = mongo.db.reports.find_one(
-            {"printer_id": printer_id}, sort=[("timestamp", -1)]
-        )
-
-        if recent_report:
-            printer["status"] = recent_report["status"]
-            printer["paper_level"] = recent_report.get("paper_level", 0)
-            printer["toner_level"] = recent_report.get("toner_level", 0)
-            printer["last_updated"] = recent_report["timestamp"]
-            printer["reported_by"] = recent_report.get("reported_by", "Anonymous")
-
-        # Get recent reports history
-        reports = list(
-            mongo.db.reports.find({"printer_id": printer_id})
+        # Get all reviews for this space
+        reviews = list(
+            mongo.db.reviews.find({"space_id": space_id})
             .sort("timestamp", -1)
-            .limit(10)
+            .limit(20)
         )
 
-        for report in reports:
-            report["_id"] = str(report["_id"])
+        for review in reviews:
+            review["_id"] = str(review["_id"])
 
-        printer["recent_reports"] = reports
+        # Calculate averages
+        if reviews:
+            avg_rating = sum(r["rating"] for r in reviews) / len(reviews)
+            avg_silence = sum(r["silence"] for r in reviews) / len(reviews)
+            avg_crowdedness = sum(r["crowdedness"] for r in reviews) / len(reviews)
+            
+            space["avg_rating"] = round(avg_rating, 1)
+            space["avg_silence"] = round(avg_silence, 1)
+            space["avg_crowdedness"] = round(avg_crowdedness, 1)
+            space["review_count"] = len(reviews)
+        else:
+            space["avg_rating"] = 0
+            space["avg_silence"] = 0
+            space["avg_crowdedness"] = 0
+            space["review_count"] = 0
 
-        return jsonify(printer)
-    return jsonify({"error": "Printer not found"}), 404
+        space["reviews"] = reviews
+
+        return jsonify(space)
+    return jsonify({"error": "Study space not found"}), 404
 
 
-@app.route("/api/printers", methods=["POST"])
-def add_printer():
-    """API endpoint to add a new printer"""
+@app.route("/api/spaces", methods=["POST"])
+def add_space():
+    """API endpoint to add a new study space"""
     data = request.get_json()
 
-    if not data or "name" not in data or "location" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+    if not data or "building" not in data or "sublocation" not in data:
+        return jsonify({"error": "Missing required fields: building and sublocation"}), 400
     
-    printer = {
-        "name": data.get("name"),
-        "location": data.get("location"),
+    space = {
         "building": data.get("building"),
-        "floor": data.get("floor"),
+        "sublocation": data.get("sublocation"),
         "created_at": datetime.utcnow(),
     }
     try:
-        result = mongo.db.printers.insert_one(printer)
-        printer["_id"] = str(result.inserted_id)
-        return jsonify(printer), 201
+        result = mongo.db.study_spaces.insert_one(space)
+        space["_id"] = str(result.inserted_id)
+        return jsonify(space), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/printers/<printer_id>", methods=["PUT"])
-def update_printer(printer_id):
-    """API endpoint to update printer info (not status - use reports for that)"""
+@app.route("/api/spaces/<space_id>", methods=["PUT"])
+def update_space(space_id):
+    """API endpoint to update study space info"""
     data = request.get_json()
     update_data = {}
 
-    if "status" in data:
-        update_data["status"] = data["status"]
-    if "paper_level" in data:
-        update_data["paper_level"] = data["paper_level"]
+    if "building" in data:
+        update_data["building"] = data["building"]
+    if "sublocation" in data:
+        update_data["sublocation"] = data["sublocation"]
 
     if update_data:
         update_data["updated_at"] = datetime.utcnow()
 
         try:
-            query = {"_id": ObjectId(printer_id)}
+            query = {"_id": ObjectId(space_id)}
         except (InvalidId, TypeError):
             # If not a valid ObjectId, use string query (for tests)
-            query = {"_id": printer_id}
+            query = {"_id": space_id}
 
         try:
-            result = mongo.db.printers.update_one(query, {"$set": update_data})
+            result = mongo.db.study_spaces.update_one(query, {"$set": update_data})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
         if result.matched_count:
-            return jsonify({"message": "Printer updated successfully"})
-        return jsonify({"error": "Printer not found"}), 404
+            return jsonify({"message": "Study space updated successfully"})
+        return jsonify({"error": "Study space not found"}), 404
 
     return jsonify({"error": "No valid fields to update"}), 400
 
 
-@app.route("/api/printers/<printer_id>", methods=["DELETE"])
-def delete_printer(printer_id):
-    """API endpoint to delete a printer"""
+@app.route("/api/spaces/<space_id>", methods=["DELETE"])
+def delete_space(space_id):
+    """API endpoint to delete a study space"""
     try:
-        query = {"_id": ObjectId(printer_id)}
+        query = {"_id": ObjectId(space_id)}
     except (InvalidId, TypeError):
         # If not a valid ObjectId, use string query (for tests)
-        query = {"_id": printer_id}
+        query = {"_id": space_id}
     try:
-        result = mongo.db.printers.delete_one(query)
+        result = mongo.db.study_spaces.delete_one(query)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
     if result.deleted_count:
-        return jsonify({"message": "Printer deleted successfully"})
-    return jsonify({"error": "Printer not found"}), 404
+        return jsonify({"message": "Study space deleted successfully"})
+    return jsonify({"error": "Study space not found"}), 404
 
 
-@app.route("/api/reports", methods=["POST"])
+@app.route("/api/reviews", methods=["POST"])
 @login_required
-def submit_report():
-    """API endpoint for users to submit printer status reports (requires authentication)"""
+def submit_review():
+    """API endpoint for users to submit study space reviews (requires authentication)"""
     data = request.get_json()
 
     # Validate required fields
-    if not data.get("printer_id") or not data.get("status"):
-        return jsonify({"error": "printer_id and status are required"}), 400
+    if not data.get("space_id"):
+        return jsonify({"error": "space_id is required"}), 400
+    
+    if not all(key in data for key in ["rating", "silence", "crowdedness"]):
+        return jsonify({"error": "rating, silence, and crowdedness are required"}), 400
 
-    # Verify printer exists
-    printer = mongo.db.printers.find_one({"_id": ObjectId(data["printer_id"])})
-    if not printer:
-        return jsonify({"error": "Printer not found"}), 404
+    # Verify space exists
+    space = mongo.db.study_spaces.find_one({"_id": ObjectId(data["space_id"])})
+    if not space:
+        return jsonify({"error": "Study space not found"}), 404
 
-    # Use authenticated user's NetID (override any provided reported_by)
-    report = {
-        "printer_id": data["printer_id"],
-        "status": data[
-            "status"
-        ],  # available, busy, offline, out_of_paper, out_of_toner
-        "paper_level": data.get("paper_level", 0),
-        "toner_level": data.get("toner_level", 0),
-        "reported_by": current_user.netid,  # Authenticated NetID (extracted from email)
-        "reporter_email": current_user.email,  # Email
-        "comments": data.get("comments", ""),
+    # Validate rating values (1-5)
+    try:
+        rating = int(data["rating"])
+        silence = int(data["silence"])
+        crowdedness = int(data["crowdedness"])
+        
+        if not (1 <= rating <= 5 and 1 <= silence <= 5 and 1 <= crowdedness <= 5):
+            return jsonify({"error": "All ratings must be between 1 and 5"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Ratings must be valid integers"}), 400
+
+    # Use authenticated user's NetID
+    review = {
+        "space_id": data["space_id"],
+        "rating": rating,
+        "silence": silence,
+        "crowdedness": crowdedness,
+        "review": data.get("review", ""),
+        "reported_by": current_user.netid,
+        "reporter_email": current_user.email,
         "timestamp": datetime.utcnow(),
     }
 
-    result = mongo.db.reports.insert_one(report)
-    report["_id"] = str(result.inserted_id)
+    result = mongo.db.reviews.insert_one(review)
+    review["_id"] = str(result.inserted_id)
 
-    return jsonify(report), 201
+    return jsonify(review), 201
 
 
-@app.route("/api/reports", methods=["GET"])
-def get_reports():
-    """API endpoint to get all reports (most recent first)"""
-    printer_id = request.args.get("printer_id")
+@app.route("/api/reviews", methods=["GET"])
+def get_reviews():
+    """API endpoint to get all reviews (most recent first)"""
+    space_id = request.args.get("space_id")
     limit = int(request.args.get("limit", 50))
 
     query = {}
-    if printer_id:
-        query["printer_id"] = printer_id
+    if space_id:
+        query["space_id"] = space_id
 
-    reports = list(mongo.db.reports.find(query).sort("timestamp", -1).limit(limit))
+    reviews = list(mongo.db.reviews.find(query).sort("timestamp", -1).limit(limit))
 
-    for report in reports:
-        report["_id"] = str(report["_id"])
+    for review in reviews:
+        review["_id"] = str(review["_id"])
 
-    return jsonify(reports)
+    return jsonify(reviews)
 
 
 @app.route("/health")

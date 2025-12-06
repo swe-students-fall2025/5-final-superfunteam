@@ -1,6 +1,6 @@
 """
-Seed Data Script for NYU Printer Status Application
-Populates the database with sample NYU printer locations
+Seed Data Script for NYU Study Space Status Application
+Populates the database with sample NYU study space locations
 """
 
 from pymongo import MongoClient
@@ -9,153 +9,166 @@ import os
 
 def get_db_connection():
     """Get MongoDB connection"""
-    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/nyu_printers")
+    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/nyu_study_spaces")
     client = MongoClient(MONGO_URI)
     return client.get_database()
 
-def seed_printers():
-    """Insert sample NYU printer locations into the database"""
+def seed_study_spaces():
+    """Insert sample NYU study space locations into the database"""
     db = get_db_connection()
     
-    # Sample NYU printer locations across campus
-    sample_printers = [
+    # Sample NYU study space locations across campus
+    sample_spaces = [
         {
-            "name": "Bobst Library - Main Floor Printer",
-            "location": "Elmer Holmes Bobst Library - 1st Floor",
             "building": "Bobst Library",
-            "floor": "1",
+            "sublocation": "1st Floor Study Area",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Bobst Library - Second Floor Printer",
-            "location": "Elmer Holmes Bobst Library - 2nd Floor",
             "building": "Bobst Library",
-            "floor": "2",
+            "sublocation": "2nd Floor Quiet Zone",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Kimmel Center - Student Lounge Printer",
-            "location": "Kimmel Center for University Life - 2nd Floor Student Lounge",
+            "building": "Bobst Library",
+            "sublocation": "3rd Floor Group Study Rooms",
+            "created_at": datetime.utcnow(),
+        },
+        {
+            "building": "Bobst Library",
+            "sublocation": "12th Floor Lounge",
+            "created_at": datetime.utcnow(),
+        },
+        {
             "building": "Kimmel Center",
-            "floor": "2",
+            "sublocation": "2nd Floor Student Lounge",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Courant Institute - Computer Lab Printer",
-            "location": "Warren Weaver Hall - Room 101",
+            "building": "Kimmel Center",
+            "sublocation": "Market Dining Area",
+            "created_at": datetime.utcnow(),
+        },
+        {
             "building": "Courant Institute",
-            "floor": "1",
+            "sublocation": "Warren Weaver Hall - Room 101",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Tandon School - Rogers Hall Printer",
-            "location": "Rogers Hall - 3rd Floor Computer Lab",
-            "building": "Tandon School of Engineering",
-            "floor": "3",
+            "building": "Courant Institute",
+            "sublocation": "Common Area Lounge",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Stern School - Tisch Hall Printer",
-            "location": "Henry Kaufman Management Center - 2nd Floor",
             "building": "Stern School of Business",
-            "floor": "2",
+            "sublocation": "Tisch Hall Library",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Silver Center - Student Services Printer",
-            "location": "Silver Center - 1st Floor Student Services",
+            "building": "Stern School of Business",
+            "sublocation": "Kaufman Center Study Rooms",
+            "created_at": datetime.utcnow(),
+        },
+        {
             "building": "Silver Center",
-            "floor": "1",
+            "sublocation": "1st Floor Atrium",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
         {
-            "name": "Palladium - Residence Hall Printer",
-            "location": "Palladium Athletic Facility - Lobby",
-            "building": "Palladium",
-            "floor": "1",
+            "building": "Tandon School of Engineering",
+            "sublocation": "Rogers Hall 3rd Floor",
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
         },
-        {
-            "name": "Torch Club - Graduate Lounge Printer",
-            "location": "Torch Club - Graduate Student Lounge",
-            "building": "Torch Club",
-            "floor": "2",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        },
-        {
-            "name": "Lipton Hall - Computer Lab Printer",
-            "location": "Lipton Hall - Basement Computer Lab",
-            "building": "Lipton Hall",
-            "floor": "B",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
     ]
     
-    # Check if printers already exist
-    existing_count = db.printers.count_documents({})
+    # Check if spaces already exist
+    existing_count = db.study_spaces.count_documents({})
     if existing_count > 0:
-        print(f"⚠️  Database already contains {existing_count} printers.")
+        print(f"⚠️  Database already contains {existing_count} study spaces.")
         print("Skipping seed operation to preserve existing data.")
         print("To reseed, manually clear the database first.")
         return
     
-    # Insert sample printers
-    result = db.printers.insert_many(sample_printers)
-    print(f"✅ Successfully inserted {len(result.inserted_ids)} printers!")
+    # Insert sample study spaces
+    result = db.study_spaces.insert_many(sample_spaces)
+    print(f"✅ Successfully inserted {len(result.inserted_ids)} study spaces!")
     
-    # Display inserted printers
-    print("\n📍 Sample Printer Locations:")
-    for i, printer in enumerate(sample_printers, 1):
-        print(f"{i}. {printer['name']}")
-        print(f"   Location: {printer['location']}")
-        print()
+    # Display inserted spaces
+    print("\n📍 Sample Study Space Locations:")
+    for i, space in enumerate(sample_spaces, 1):
+        print(f"{i}. {space['building']} - {space['sublocation']}")
     
-    # Add some sample reports for demonstration
+    print()
+    
+    # Add some sample reviews for demonstration
     if len(result.inserted_ids) > 0:
-        sample_reports = [
+        sample_reviews = [
             {
-                "printer_id": str(result.inserted_ids[0]),
-                "status": "available",
-                "paper_level": 85,
-                "toner_level": 70,
-                "reported_by": "Anonymous",
-                "comments": "Working perfectly",
+                "space_id": str(result.inserted_ids[0]),
+                "rating": 4,
+                "silence": 3,
+                "crowdedness": 4,
+                "review": "Great space for collaborative work, can get a bit noisy during peak hours",
+                "reported_by": "student1",
+                "reporter_email": "student1@nyu.edu",
                 "timestamp": datetime.utcnow()
             },
             {
-                "printer_id": str(result.inserted_ids[1]),
-                "status": "busy",
-                "paper_level": 60,
-                "toner_level": 45,
-                "reported_by": "Student",
-                "comments": "Currently printing a large job",
+                "space_id": str(result.inserted_ids[1]),
+                "rating": 5,
+                "silence": 5,
+                "crowdedness": 2,
+                "review": "Perfect for deep focus work. Very quiet and peaceful!",
+                "reported_by": "student2",
+                "reporter_email": "student2@nyu.edu",
                 "timestamp": datetime.utcnow()
             },
             {
-                "printer_id": str(result.inserted_ids[2]),
-                "status": "available",
-                "paper_level": 90,
-                "toner_level": 80,
-                "reported_by": "Staff",
-                "comments": "Recently refilled",
+                "space_id": str(result.inserted_ids[2]),
+                "rating": 4,
+                "silence": 2,
+                "crowdedness": 4,
+                "review": "Great for group projects, rooms can be reserved in advance",
+                "reported_by": "student3",
+                "reporter_email": "student3@nyu.edu",
+                "timestamp": datetime.utcnow()
+            },
+            {
+                "space_id": str(result.inserted_ids[3]),
+                "rating": 5,
+                "silence": 4,
+                "crowdedness": 1,
+                "review": "Amazing views and usually not crowded. Hidden gem!",
+                "reported_by": "student4",
+                "reporter_email": "student4@nyu.edu",
+                "timestamp": datetime.utcnow()
+            },
+            {
+                "space_id": str(result.inserted_ids[4]),
+                "rating": 3,
+                "silence": 2,
+                "crowdedness": 5,
+                "review": "Social atmosphere but too crowded and noisy for serious studying",
+                "reported_by": "student5",
+                "reporter_email": "student5@nyu.edu",
+                "timestamp": datetime.utcnow()
+            },
+            {
+                "space_id": str(result.inserted_ids[8]),
+                "rating": 5,
+                "silence": 4,
+                "crowdedness": 2,
+                "review": "Excellent business library with comfortable seating and quiet atmosphere",
+                "reported_by": "student6",
+                "reporter_email": "student6@nyu.edu",
                 "timestamp": datetime.utcnow()
             }
         ]
         
-        db.reports.insert_many(sample_reports)
-        print(f"✅ Added {len(sample_reports)} sample status reports!")
+        db.reviews.insert_many(sample_reviews)
+        print(f"✅ Added {len(sample_reviews)} sample reviews!")
 
 if __name__ == "__main__":
-    print("🌱 NYU Printer Status - Database Seed Script")
+    print("🌱 NYU Study Space Status - Database Seed Script")
     print("=" * 50)
-    seed_printers()
+    seed_study_spaces()

@@ -14,7 +14,7 @@
 }
 
 .admin-card h3 {
-    color: #667eea;
+    color: #57068C;
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
 }
@@ -27,7 +27,7 @@
 .form-group label {
     display: block;
     font-weight: 500;
-    color: #333;
+    color: #000000;
     margin-bottom: 0.5rem;
 }
 
@@ -44,7 +44,7 @@
 
 .form-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #57068C;
 }
 
 .form-row {
@@ -73,7 +73,7 @@
 .printers-table th {
     background: #f5f5f5;
     font-weight: 600;
-    color: #333;
+    color: #000000;
 }
 
 .printers-table tr:hover {
@@ -87,7 +87,7 @@
 }
 
 .btn-edit {
-    background: #4caf50;
+    background: #b477dd;
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -97,7 +97,7 @@
 }
 
 .btn-delete {
-    background: #f44336;
+    background: #ff0000;
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -118,7 +118,7 @@
 .download-link {
     display: inline-block;
     margin-top: 1rem;
-    color: #667eea;
+    color: #57068C;
     text-decoration: none;
     font-weight: 500;
 }
@@ -144,19 +144,4 @@
     background: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .printers-table {
-        font-size: 0.9rem;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-    }
 }
