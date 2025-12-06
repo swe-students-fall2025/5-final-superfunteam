@@ -14,47 +14,46 @@ def test_get_db_connection_returns_db():
         mock_client.get_database.assert_called_once()
 
 def test_create_collections_and_indexes():
-    """Test that collections and indexes are created correctly (fixed)"""
+    """Test that collections and indexes are created correctly"""
     # Mock database
     mock_db = MagicMock()
     # Initially no collections exist
     mock_db.list_collection_names.return_value = []
 
-    # Create mocks for printers and reports
-    mock_db.printers = MagicMock()
-    mock_db.reports = MagicMock()
+    # Create mocks for study_spaces and reviews
+    mock_db.study_spaces = MagicMock()
+    mock_db.reviews = MagicMock()
 
     # Patch get_db_connection to return mock_db
     with patch("db_schema.get_db_connection", return_value=mock_db):
         db_schema.create_collections_and_indexes()
 
     # Check collection creation
-    mock_db.create_collection.assert_any_call("printers")
-    mock_db.create_collection.assert_any_call("reports")
+    mock_db.create_collection.assert_any_call("study_spaces")
+    mock_db.create_collection.assert_any_call("reviews")
 
-    # Check printers indexes
-    expected_printers_indexes = [
-        ("name", db_schema.ASCENDING),
-        ("location", db_schema.ASCENDING),
+    # Check study_spaces indexes
+    expected_study_spaces_indexes = [
         ("building", db_schema.ASCENDING),
+        ("sublocation", db_schema.ASCENDING),
         ("created_at", db_schema.DESCENDING)
     ]
-    for field, order in expected_printers_indexes:
-        mock_db.printers.create_index.assert_any_call([(field, order)])
+    for field, order in expected_study_spaces_indexes:
+        mock_db.study_spaces.create_index.assert_any_call([(field, order)])
 
-    # Check reports indexes
-    mock_db.reports.create_index.assert_any_call([
-        ("printer_id", db_schema.ASCENDING),
+    # Check reviews indexes
+    mock_db.reviews.create_index.assert_any_call([
+        ("space_id", db_schema.ASCENDING),
         ("timestamp", db_schema.DESCENDING)
     ])
-    mock_db.reports.create_index.assert_any_call([("timestamp", db_schema.DESCENDING)])
-    mock_db.reports.create_index.assert_any_call([("status", db_schema.ASCENDING)])
+    mock_db.reviews.create_index.assert_any_call([("timestamp", db_schema.DESCENDING)])
+    mock_db.reviews.create_index.assert_any_call([("rating", db_schema.ASCENDING)])
 
 
 def test_create_collections_and_indexes_skips_existing_collections():
     """If collections exist, should not try to create them"""
     mock_db = MagicMock()
-    mock_db.list_collection_names.return_value = ["printers", "reports"]
+    mock_db.list_collection_names.return_value = ["study_spaces", "reviews"]
 
     with patch("db_schema.get_db_connection", return_value=mock_db):
         db_schema.create_collections_and_indexes()

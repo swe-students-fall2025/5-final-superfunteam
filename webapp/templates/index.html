@@ -1,65 +1,84 @@
 {% extends "base.html" %}
 
-{% block title %}NYU Printer Status - Home{% endblock %}
+{% block title %}NYU Study Space Status - Home{% endblock %}
 
 {% block content %}
 <div class="header-section">
-    <h2>Campus Printer Status</h2>
-    <p>Real-time monitoring of NYU printers across all locations</p>
+    <h2>Campus Study Space Reviews</h2>
+    <p>Real-time reviews and ratings of NYU study spaces across all locations</p>
 </div>
 
 <div class="filters">
-    <button class="filter-btn active" data-filter="all">All Locations</button>
-    <button class="filter-btn" data-filter="available">Available</button>
-    <button class="filter-btn" data-filter="busy">Busy</button>
-    <button class="filter-btn" data-filter="offline">Offline</button>
+    <button class="filter-btn active" data-filter="all">All Spaces</button>
+    <button class="filter-btn" data-filter="high-rated">Highly Rated (4+)</button>
+    <button class="filter-btn" data-filter="quiet">Quiet Spaces</button>
+    <button class="filter-btn" data-filter="available">Less Crowded</button>
 </div>
 
-<div class="printer-grid" id="printerGrid">
-    {% if printers %}
-        {% for printer in printers %}
-        <div class="printer-card status-{{ printer.status }}" data-status="{{ printer.status }}">
-            <div class="printer-header">
-                <h3>{{ printer.name }}</h3>
-                <span class="status-badge status-{{ printer.status }}">{{ printer.status|upper }}</span>
+<div class="space-grid" id="spaceGrid">
+    {% if spaces %}
+        {% for space in spaces %}
+        <div class="space-card" 
+             data-rating="{{ space.avg_rating }}" 
+             data-silence="{{ space.avg_silence }}"
+             data-crowdedness="{{ space.avg_crowdedness }}">
+            <div class="space-header">
+                <h3>{{ space.building }}</h3>
+                <div class="rating-badge">
+                    <span class="stars">{{ '★' * (space.avg_rating|int) }}{{ '☆' * (5 - (space.avg_rating|int)) }}</span>
+                    <span class="rating-number">{{ space.avg_rating }}/5</span>
+                </div>
             </div>
-            <div class="printer-details">
-                <p><strong>Location:</strong> {{ printer.location }}</p>
-                <div class="level-indicator">
-                    <label>Paper:</label>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ printer.paper_level }}%"></div>
-                    </div>
-                    <span>{{ printer.paper_level }}%</span>
+            <div class="space-details">
+                <p><strong>Location:</strong> {{ space.sublocation }}</p>
+                
+                <div class="rating-row">
+                    <label>Overall Rating:</label>
+                    <div class="rating-stars">{{ '★' * (space.avg_rating|int) }}{{ '☆' * (5 - (space.avg_rating|int)) }}</div>
+                    <span>{{ space.avg_rating }}/5</span>
                 </div>
-                <div class="level-indicator">
-                    <label>Toner:</label>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ printer.toner_level }}%"></div>
-                    </div>
-                    <span>{{ printer.toner_level }}%</span>
+                
+                <div class="rating-row">
+                    <label>Silence Level:</label>
+                    <div class="rating-stars">{{ '★' * (space.avg_silence|int) }}{{ '☆' * (5 - (space.avg_silence|int)) }}</div>
+                    <span>{{ space.avg_silence }}/5</span>
                 </div>
+                
+                <div class="rating-row">
+                    <label>Crowdedness:</label>
+                    <div class="rating-stars">{{ '★' * (space.avg_crowdedness|int) }}{{ '☆' * (5 - (space.avg_crowdedness|int)) }}</div>
+                    <span>{{ space.avg_crowdedness }}/5</span>
+                </div>
+                
+                <p class="review-count">{{ space.review_count }} review{{ 's' if space.review_count != 1 else '' }}</p>
+                
+                {% if space.last_review %}
+                <div class="latest-review">
+                    <p><em>"{{ space.last_review[:100] }}{{ '...' if space.last_review|length > 100 else '' }}"</em></p>
+                </div>
+                {% endif %}
+                
                 <p class="last-updated">
-                    Last reported: {{ printer.last_updated.strftime('%Y-%m-%d %H:%M') if printer.last_updated else 'No reports yet' }}
-                    {% if printer.reported_by %}
-                    <br><small>by {{ printer.reported_by }}</small>
+                    Last reviewed: {{ space.last_updated.strftime('%Y-%m-%d %H:%M') if space.last_updated else 'No reviews yet' }}
+                    {% if space.reported_by %}
+                    <br><small>by {{ space.reported_by }}</small>
                     {% endif %}
                 </p>
             </div>
             {% if current_user.is_authenticated %}
-            <button class="report-btn" onclick="openReportModal('{{ printer._id }}', '{{ printer.name }}')">
-                Report Status
+            <button class="review-btn" onclick="openReviewModal('{{ space._id }}', '{{ space.building }}', '{{ space.sublocation }}')">
+                Submit Review
             </button>
             {% else %}
-            <button class="report-btn report-btn-disabled" title="Login required to report status">
-                Login to Report
+            <button class="review-btn review-btn-disabled" title="Login required to submit review">
+                Login to Review
             </button>
             {% endif %}
         </div>
         {% endfor %}
     {% else %}
-        <div class="no-printers">
-            <p>No printers found. Add some printers to get started!</p>
+        <div class="no-spaces">
+            <p>No study spaces found. Add some study spaces to get started!</p>
         </div>
     {% endif %}
 </div>
@@ -71,40 +90,61 @@
     </label>
 </div>
 
-<!-- Report Modal -->
-<div id="reportModal" class="modal">
+<!-- Review Modal -->
+<div id="reviewModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeReportModal()">&times;</span>
-        <h2>Report Printer Status</h2>
-        <p id="modalPrinterName"></p>
-        <form id="reportForm">
-            <input type="hidden" id="reportPrinterId" name="printer_id">
+        <span class="close" onclick="closeReviewModal()">&times;</span>
+        <h2>Submit Study Space Review</h2>
+        <p id="modalSpaceName"></p>
+        <form id="reviewForm">
+            <input type="hidden" id="reviewSpaceId" name="space_id">
             
-            <label for="status">Status:</label>
-            <select id="status" name="status" required>
-                <option value="">Select status...</option>
-                <option value="available">Available</option>
-                <option value="busy">Busy/In Use</option>
-                <option value="offline">Offline/Not Working</option>
-                <option value="out_of_paper">Out of Paper</option>
-                <option value="out_of_toner">Out of Toner</option>
-            </select>
+            <label for="rating">Overall Rating (1-5 stars):</label>
+            <div class="star-rating">
+                <input type="radio" id="rating5" name="rating" value="5" required>
+                <label for="rating5">★</label>
+                <input type="radio" id="rating4" name="rating" value="4">
+                <label for="rating4">★</label>
+                <input type="radio" id="rating3" name="rating" value="3">
+                <label for="rating3">★</label>
+                <input type="radio" id="rating2" name="rating" value="2">
+                <label for="rating2">★</label>
+                <input type="radio" id="rating1" name="rating" value="1">
+                <label for="rating1">★</label>
+            </div>
             
-            <label for="paper_level">Paper Level (%):</label>
-            <input type="range" id="paper_level" name="paper_level" min="0" max="100" value="50">
-            <span id="paperValue">50%</span>
+            <label for="silence">Silence Level (1-5, 5 = very quiet):</label>
+            <div class="star-rating">
+                <input type="radio" id="silence5" name="silence" value="5" required>
+                <label for="silence5">★</label>
+                <input type="radio" id="silence4" name="silence" value="4">
+                <label for="silence4">★</label>
+                <input type="radio" id="silence3" name="silence" value="3">
+                <label for="silence3">★</label>
+                <input type="radio" id="silence2" name="silence" value="2">
+                <label for="silence2">★</label>
+                <input type="radio" id="silence1" name="silence" value="1">
+                <label for="silence1">★</label>
+            </div>
             
-            <label for="toner_level">Toner Level (%):</label>
-            <input type="range" id="toner_level" name="toner_level" min="0" max="100" value="50">
-            <span id="tonerValue">50%</span>
+            <label for="crowdedness">Crowdedness (1-5, 5 = very crowded):</label>
+            <div class="star-rating">
+                <input type="radio" id="crowdedness5" name="crowdedness" value="5" required>
+                <label for="crowdedness5">★</label>
+                <input type="radio" id="crowdedness4" name="crowdedness" value="4">
+                <label for="crowdedness4">★</label>
+                <input type="radio" id="crowdedness3" name="crowdedness" value="3">
+                <label for="crowdedness3">★</label>
+                <input type="radio" id="crowdedness2" name="crowdedness" value="2">
+                <label for="crowdedness2">★</label>
+                <input type="radio" id="crowdedness1" name="crowdedness" value="1">
+                <label for="crowdedness1">★</label>
+            </div>
             
-            <label for="reported_by">Your Name (optional):</label>
-            <input type="text" id="reported_by" name="reported_by" placeholder="Anonymous">
+            <label for="review">Your Review (optional):</label>
+            <textarea id="review" name="review" rows="4" placeholder="Share your experience with this study space..."></textarea>
             
-            <label for="comments">Comments (optional):</label>
-            <textarea id="comments" name="comments" placeholder="Any additional notes..."></textarea>
-            
-            <button type="submit" class="btn">Submit Report</button>
+            <button type="submit" class="btn">Submit Review</button>
         </form>
     </div>
 </div>
@@ -116,13 +156,13 @@
     let refreshInterval;
     const autoRefreshCheckbox = document.getElementById('autoRefresh');
     
-    function refreshPrinters() {
+    function refreshSpaces() {
         location.reload();
     }
     
     autoRefreshCheckbox.addEventListener('change', function() {
         if (this.checked) {
-            refreshInterval = setInterval(refreshPrinters, 30000);
+            refreshInterval = setInterval(refreshSpaces, 30000);
         } else {
             clearInterval(refreshInterval);
         }
@@ -130,12 +170,12 @@
     
     // Start auto-refresh
     if (autoRefreshCheckbox.checked) {
-        refreshInterval = setInterval(refreshPrinters, 30000);
+        refreshInterval = setInterval(refreshSpaces, 30000);
     }
     
     // Filter functionality
     const filterButtons = document.querySelectorAll('.filter-btn');
-    const printerCards = document.querySelectorAll('.printer-card');
+    const spaceCards = document.querySelectorAll('.space-card');
     
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -144,65 +184,63 @@
             
             const filter = this.dataset.filter;
             
-            printerCards.forEach(card => {
-                if (filter === 'all' || card.dataset.status === filter) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
+            spaceCards.forEach(card => {
+                const rating = parseFloat(card.dataset.rating);
+                const silence = parseFloat(card.dataset.silence);
+                const crowdedness = parseFloat(card.dataset.crowdedness);
+                
+                let show = false;
+                
+                if (filter === 'all') {
+                    show = true;
+                } else if (filter === 'high-rated' && rating >= 4) {
+                    show = true;
+                } else if (filter === 'quiet' && silence >= 4) {
+                    show = true;
+                } else if (filter === 'available' && crowdedness <= 2) {
+                    show = true;
                 }
+                
+                card.style.display = show ? 'block' : 'none';
             });
         });
     });
     
-    // Report Modal functionality
-    const modal = document.getElementById('reportModal');
-    const paperSlider = document.getElementById('paper_level');
-    const tonerSlider = document.getElementById('toner_level');
-    const paperValue = document.getElementById('paperValue');
-    const tonerValue = document.getElementById('tonerValue');
+    // Review Modal functionality
+    const modal = document.getElementById('reviewModal');
     
-    function openReportModal(printerId, printerName) {
-        document.getElementById('reportPrinterId').value = printerId;
-        document.getElementById('modalPrinterName').textContent = 'Printer: ' + printerName;
+    function openReviewModal(spaceId, building, sublocation) {
+        document.getElementById('reviewSpaceId').value = spaceId;
+        document.getElementById('modalSpaceName').textContent = building + ' - ' + sublocation;
         modal.style.display = 'block';
     }
     
-    function closeReportModal() {
+    function closeReviewModal() {
         modal.style.display = 'none';
-        document.getElementById('reportForm').reset();
-    }
-    
-    // Update slider values
-    paperSlider.oninput = function() {
-        paperValue.textContent = this.value + '%';
-    }
-    
-    tonerSlider.oninput = function() {
-        tonerValue.textContent = this.value + '%';
+        document.getElementById('reviewForm').reset();
     }
     
     // Close modal when clicking outside
     window.onclick = function(event) {
         if (event.target == modal) {
-            closeReportModal();
+            closeReviewModal();
         }
     }
     
     // Handle form submission
-    document.getElementById('reportForm').addEventListener('submit', async function(e) {
+    document.getElementById('reviewForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const formData = {
-            printer_id: document.getElementById('reportPrinterId').value,
-            status: document.getElementById('status').value,
-            paper_level: parseInt(document.getElementById('paper_level').value),
-            toner_level: parseInt(document.getElementById('toner_level').value),
-            reported_by: document.getElementById('reported_by').value || 'Anonymous',
-            comments: document.getElementById('comments').value
+            space_id: document.getElementById('reviewSpaceId').value,
+            rating: parseInt(document.querySelector('input[name="rating"]:checked').value),
+            silence: parseInt(document.querySelector('input[name="silence"]:checked').value),
+            crowdedness: parseInt(document.querySelector('input[name="crowdedness"]:checked').value),
+            review: document.getElementById('review').value
         };
         
         try {
-            const response = await fetch('/api/reports', {
+            const response = await fetch('/api/reviews', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -211,14 +249,15 @@
             });
             
             if (response.ok) {
-                alert('Thank you for reporting! The status has been updated.');
-                closeReportModal();
-                refreshPrinters();
+                alert('Thank you for your review! Your feedback has been submitted.');
+                closeReviewModal();
+                refreshSpaces();
             } else {
-                alert('Error submitting report. Please try again.');
+                const data = await response.json();
+                alert('Error submitting review: ' + (data.error || 'Please try again.'));
             }
         } catch (error) {
-            alert('Error submitting report: ' + error.message);
+            alert('Error submitting review: ' + error.message);
         }
     });
 </script>

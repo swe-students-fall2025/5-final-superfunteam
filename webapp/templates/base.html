@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NYU Printer Status{% endblock %}</title>
+    <title>{% block title %}NYU Study Space Status{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
@@ -13,10 +13,10 @@
     <header>
         <nav>
             <div class="container">
-                <h1>NYU Printer Status</h1>
+                <h1>NYU Study Space Status</h1>
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('add_printer_page') }}">Add Printer</a></li>
+                    <li><a href="{{ url_for('add_space_page') }}">Add Study Space</a></li>
                     {% if current_user.is_authenticated %}
                     <li class="user-info">
                         <span class="user-name">{{ current_user.netid }}</span>
@@ -36,7 +36,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2025 NYU Printer Status Reporter | Team SuperFun</p>
+            <p>&copy; 2025 NYU Study Space Status | Team SuperFun</p>
         </div>
     </footer>
 

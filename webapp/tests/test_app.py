@@ -21,7 +21,7 @@ def mock_mongo():
 
 def test_index_route(client, mock_mongo):
     """Test the home page route"""
-    mock_mongo.db.printers.find.return_value = []
+    mock_mongo.db.study_spaces.find.return_value = []
     response = client.get('/')
     assert response.status_code == 200
 
@@ -72,152 +72,146 @@ def test_load_user_db_exception():
         assert "DB error" in str(excinfo.value)
         mock_users.find_one.assert_called_once_with({"email": "error@nyu.edu"})
 
-def test_get_printers_api(client, mock_mongo):
-    """Test GET /api/printers endpoint"""
-    mock_printers = [
-        {'_id': '123', 'name': 'Test Printer', 'status': 'available'}
+def test_get_spaces_api(client, mock_mongo):
+    """Test GET /api/spaces endpoint"""
+    mock_spaces = [
+        {'_id': '123', 'building': 'Bobst Library', 'sublocation': '2nd Floor'}
     ]
-    mock_mongo.db.printers.find.return_value = mock_printers
+    mock_mongo.db.study_spaces.find.return_value = mock_spaces
     
-    response = client.get('/api/printers')
+    response = client.get('/api/spaces')
     assert response.status_code == 200
     data = response.get_json()
     assert isinstance(data, list)
 
-def test_get_printers_api_empty(client, mock_mongo):
-    """Test GET /api/printers endpoint when DB returns empty"""
-    mock_mongo.db.printers.find.return_value = []
+def test_get_spaces_api_empty(client, mock_mongo):
+    """Test GET /api/spaces endpoint when DB returns empty"""
+    mock_mongo.db.study_spaces.find.return_value = []
     
-    response = client.get('/api/printers')
+    response = client.get('/api/spaces')
     assert response.status_code == 200  
     data = response.get_json()
     assert data == []  
 
-def test_get_printers_api_empty(client, mock_mongo):
-    """Test GET /api/printers endpoint when DB raises exception"""
-    mock_mongo.db.printers.find.side_effect = Exception("DB failure")
+def test_get_spaces_api_exception(client, mock_mongo):
+    """Test GET /api/spaces endpoint when DB raises exception"""
+    mock_mongo.db.study_spaces.find.side_effect = Exception("DB failure")
     
-    response = client.get('/api/printers')
+    response = client.get('/api/spaces')
     assert response.status_code == 500 
     data = response.get_json()
     assert "error" in data
 
-def test_add_printer_api(client, mock_mongo):
-    """Test POST /api/printers endpoint"""
+def test_add_space_api(client, mock_mongo):
+    """Test POST /api/spaces endpoint"""
     mock_result = MagicMock()
     mock_result.inserted_id = '123'
-    mock_mongo.db.printers.insert_one.return_value = mock_result
+    mock_mongo.db.study_spaces.insert_one.return_value = mock_result
     
-    printer_data = {
-        'name': 'Test Printer',
-        'location': 'Bobst Library',
-        'status': 'available',
-        'paper_level': 80,
-        'toner_level': 60
+    space_data = {
+        'building': 'Bobst Library',
+        'sublocation': '2nd Floor Study Area'
     }
     
-    response = client.post('/api/printers', json=printer_data)
+    response = client.post('/api/spaces', json=space_data)
     assert response.status_code == 201
     data = response.get_json()
-    assert data['name'] == 'Test Printer'
+    assert data['building'] == 'Bobst Library'
+    assert data['sublocation'] == '2nd Floor Study Area'
 
-def test_add_printer_api_fail(client, mock_mongo):
-    """Test POST /api/printers endpoint with error exception"""
-    mock_mongo.db.printers.insert_one.side_effect = Exception("DB failure")
+def test_add_space_api_fail(client, mock_mongo):
+    """Test POST /api/spaces endpoint with error exception"""
+    mock_mongo.db.study_spaces.insert_one.side_effect = Exception("DB failure")
     
     valid_data = {
-        'name': 'Printer X',
-        'location': 'Room 101',
-        'status': 'available',
-        'paper_level': 80,
-        'toner_level': 60
+        'building': 'Kimmel Center',
+        'sublocation': 'Student Lounge'
     }
     
-    response = client.post('/api/printers', json=valid_data)
+    response = client.post('/api/spaces', json=valid_data)
     assert response.status_code == 500
     data = response.get_json()
     assert "error" in data
     assert data["error"] == "DB failure"
 
-def test_update_printer_api(client, mock_mongo):
-    """Test PUT /api/printers/<id> endpoint"""
+def test_update_space_api(client, mock_mongo):
+    """Test PUT /api/spaces/<id> endpoint"""
     mock_result = MagicMock()
     mock_result.matched_count = 1
-    mock_mongo.db.printers.update_one.return_value = mock_result
+    mock_mongo.db.study_spaces.update_one.return_value = mock_result
     
     update_data = {
-        'status': 'busy',
-        'paper_level': 50
+        'building': 'Bobst Library',
+        'sublocation': '3rd Floor'
     }
     
-    response = client.put('/api/printers/123', json=update_data)
+    response = client.put('/api/spaces/123', json=update_data)
     assert response.status_code == 200
     data = response.get_json()
     assert 'message' in data
 
-def test_update_printer_api_fail(client, mock_mongo):
-    """Test PUT /api/printers/<id> endpoint failure cases"""
+def test_update_space_api_fail(client, mock_mongo):
+    """Test PUT /api/spaces/<id> endpoint failure cases"""
     bad_data = {
-        'name': 'Updated Printer',  
-        'location': 'Room 101'
+        'invalid_field': 'value'
     }
 
-    response = client.put('/api/printers/507f1f77bcf86cd799439012', json=bad_data)
+    response = client.put('/api/spaces/507f1f77bcf86cd799439012', json=bad_data)
     assert response.status_code == 400
     data = response.get_json()
     assert "error" in data
     assert data["error"] == "No valid fields to update"
 
-def test_update_printer_api_exception(client, mock_mongo):
-    mock_mongo.db.printers.update_one.side_effect = Exception("DB failure")
+def test_update_space_api_exception(client, mock_mongo):
+    mock_mongo.db.study_spaces.update_one.side_effect = Exception("DB failure")
     update_data = {
-        'status': 'busy'  
+        'building': 'Updated Building'
     }
 
-    response = client.put('/api/printers/507f1f77bcf86cd799439013', json=update_data)
+    response = client.put('/api/spaces/507f1f77bcf86cd799439013', json=update_data)
     assert response.status_code == 500
     data = response.get_json()
     assert "error" in data
     assert data["error"] == "DB failure"
 
-def test_delete_printer_api(client, mock_mongo):
-    """Test DELETE /api/printers/<id> endpoint"""
+def test_delete_space_api(client, mock_mongo):
+    """Test DELETE /api/spaces/<id> endpoint"""
     mock_result = MagicMock()
     mock_result.deleted_count = 1
-    mock_mongo.db.printers.delete_one.return_value = mock_result
+    mock_mongo.db.study_spaces.delete_one.return_value = mock_result
     
-    response = client.delete('/api/printers/123')
+    response = client.delete('/api/spaces/123')
     assert response.status_code == 200
     data = response.get_json()
     assert 'message' in data
 
-def test_delete_printer_api_not_found(client, mock_mongo):
-    """Test DELETE /api/printers/<id> endpoint with printer not found"""
+def test_delete_space_api_not_found(client, mock_mongo):
+    """Test DELETE /api/spaces/<id> endpoint with space not found"""
     mock_result = MagicMock()
     mock_result.deleted_count = 0
-    mock_mongo.db.printers.delete_one.return_value = mock_result
+    mock_mongo.db.study_spaces.delete_one.return_value = mock_result
 
-    response = client.delete('/api/printers/507f1f77bcf86cd799439012')
+    response = client.delete('/api/spaces/507f1f77bcf86cd799439012')
     assert response.status_code == 404
     data = response.get_json()
     assert "error" in data
-    assert data["error"] == "Printer not found"
+    assert data["error"] == "Study space not found"
 
-def test_delete_printer_api_exception(client, mock_mongo):
-    """Test DELETE /api/printers/<id> endpoint with exception rasied"""
-    mock_mongo.db.printers.delete_one.side_effect = Exception("DB failure")
+def test_delete_space_api_exception(client, mock_mongo):
+    """Test DELETE /api/spaces/<id> endpoint with exception raised"""
+    mock_mongo.db.study_spaces.delete_one.side_effect = Exception("DB failure")
 
-    response = client.delete('/api/printers/507f1f77bcf86cd799439013')
+    response = client.delete('/api/spaces/507f1f77bcf86cd799439013')
     assert response.status_code == 500
     data = response.get_json()
     assert "error" in data
     assert data["error"] == "DB failure"
 
-def test_get_printer_not_found(client, mock_mongo):
-    """Test GET /api/printers/<id> with non-existent printer"""
-    mock_mongo.db.printers.find_one.return_value = None
+def test_get_space_not_found(client, mock_mongo):
+    """Test GET /api/spaces/<id> with non-existent space"""
+    mock_mongo.db.study_spaces.find_one.return_value = None
     
-    response = client.get('/api/printers/999')
+    response = client.get('/api/spaces/999')
     assert response.status_code == 404
     data = response.get_json()
     assert 'error' in data
@@ -348,131 +342,187 @@ def test_register_duplicate_email(client, mock_mongo):
     assert "error" in data
     assert "already registered" in data["error"]
 
-def test_submit_report_success(client, mock_mongo):
-    """Test successful report submission"""
-    printer_id = str(ObjectId())
+def test_submit_review_success(client, mock_mongo):
+    """Test successful review submission"""
+    space_id = str(ObjectId())
     
-    # Mock printer exists
-    mock_mongo.db.printers.find_one.return_value = {"_id": ObjectId(printer_id)}
+    # Mock space exists
+    mock_mongo.db.study_spaces.find_one.return_value = {"_id": ObjectId(space_id)}
     
     # Mock insert result
     mock_insert_result = MagicMock()
     mock_insert_result.inserted_id = ObjectId()
-    mock_mongo.db.reports.insert_one.return_value = mock_insert_result
+    mock_mongo.db.reviews.insert_one.return_value = mock_insert_result
     
     # Mock current_user
     with patch('app.current_user') as mock_current_user:
         mock_current_user.netid = "test123"
         mock_current_user.email = "test123@nyu.edu"
         
-        report_data = {
-            "printer_id": printer_id,
-            "status": "available",
-            "paper_level": 80,
-            "toner_level": 60,
-            "comments": "Printer is working well"
+        review_data = {
+            "space_id": space_id,
+            "rating": 4,
+            "silence": 5,
+            "crowdedness": 2,
+            "review": "Great study space, very quiet!"
         }
         
-        response = client.post('/api/reports', json=report_data)
+        response = client.post('/api/reviews', json=review_data)
         
         assert response.status_code == 201
         data = response.get_json()
-        assert data['printer_id'] == printer_id
-        assert data['status'] == 'available'
+        assert data['space_id'] == space_id
+        assert data['rating'] == 4
+        assert data['silence'] == 5
+        assert data['crowdedness'] == 2
         assert data['reported_by'] == 'test123'
         assert data['reporter_email'] == 'test123@nyu.edu'
-        assert data['paper_level'] == 80
-        assert data['toner_level'] == 60
-        assert data['comments'] == 'Printer is working well'
+        assert data['review'] == 'Great study space, very quiet!'
         assert '_id' in data
         assert 'timestamp' in data
 
-def test_submit_report_missing_printer_id(client, mock_mongo):
-    """Test report submission without printer_id"""
+def test_submit_review_missing_space_id(client, mock_mongo):
+    """Test review submission without space_id"""
     with patch('app.current_user') as mock_current_user:
         mock_current_user.netid = "test123"
         mock_current_user.email = "test123@nyu.edu"
         
-        response = client.post('/api/reports', json={
-            "status": "available"
+        response = client.post('/api/reviews', json={
+            "rating": 4,
+            "silence": 5,
+            "crowdedness": 2
         })
         
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
-        assert data["error"] == "printer_id and status are required"
+        assert data["error"] == "space_id is required"
 
-def test_submit_report_missing_status(client, mock_mongo):
-    """Test report submission without status"""
+def test_submit_review_missing_ratings(client, mock_mongo):
+    """Test review submission without required rating fields"""
     with patch('app.current_user') as mock_current_user:
         mock_current_user.netid = "test123"
         mock_current_user.email = "test123@nyu.edu"
         
-        response = client.post('/api/reports', json={
-            "printer_id": str(ObjectId())
+        response = client.post('/api/reviews', json={
+            "space_id": str(ObjectId()),
+            "rating": 4
         })
         
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
-        assert data["error"] == "printer_id and status are required"
+        assert "rating, silence, and crowdedness are required" in data["error"]
 
-def test_submit_report_printer_not_found(client, mock_mongo):
-    """Test report submission for non-existent printer"""
-    # Mock printer doesn't exist
-    mock_mongo.db.printers.find_one.return_value = None
+def test_submit_review_space_not_found(client, mock_mongo):
+    """Test review submission for non-existent space"""
+    # Mock space doesn't exist
+    mock_mongo.db.study_spaces.find_one.return_value = None
     
     with patch('app.current_user') as mock_current_user:
         mock_current_user.netid = "test123"
         mock_current_user.email = "test123@nyu.edu"
         
-        response = client.post('/api/reports', json={
-            "printer_id": str(ObjectId()),
-            "status": "available"
+        response = client.post('/api/reviews', json={
+            "space_id": str(ObjectId()),
+            "rating": 4,
+            "silence": 5,
+            "crowdedness": 2
         })
         
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
-        assert data["error"] == "Printer not found"
+        assert data["error"] == "Study space not found"
 
-def test_get_reports_success(client, mock_mongo):
-    """Test GET /api/reports endpoint returns all reports"""
-    mock_reports = [
+def test_submit_review_invalid_rating_values(client, mock_mongo):
+    """Test review submission with ratings out of 1-5 range"""
+    space_id = str(ObjectId())
+    mock_mongo.db.study_spaces.find_one.return_value = {"_id": ObjectId(space_id)}
+    
+    with patch('app.current_user') as mock_current_user:
+        mock_current_user.netid = "test123"
+        mock_current_user.email = "test123@nyu.edu"
+        
+        response = client.post('/api/reviews', json={
+            "space_id": space_id,
+            "rating": 6,  # Invalid: > 5
+            "silence": 5,
+            "crowdedness": 2
+        })
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "must be between 1 and 5" in data["error"]
+
+def test_get_reviews_success(client, mock_mongo):
+    """Test GET /api/reviews endpoint returns all reviews"""
+    mock_reviews = [
         {
             '_id': ObjectId(),
-            'printer_id': '123',
-            'status': 'available',
+            'space_id': '123',
+            'rating': 4,
+            'silence': 5,
+            'crowdedness': 2,
+            'review': 'Great space!',
             'reported_by': 'test123',
             'reporter_email': 'test123@nyu.edu',
-            'paper_level': 80,
-            'toner_level': 60,
-            'comments': 'Working well',
             'timestamp': '2024-01-01T12:00:00'
         },
         {
             '_id': ObjectId(),
-            'printer_id': '456',
-            'status': 'busy',
+            'space_id': '456',
+            'rating': 3,
+            'silence': 2,
+            'crowdedness': 4,
+            'review': 'Too crowded',
             'reported_by': 'user456',
             'reporter_email': 'user456@nyu.edu',
-            'paper_level': 50,
-            'toner_level': 40,
-            'comments': 'In use',
             'timestamp': '2024-01-01T11:00:00'
         }
     ]
     
     mock_cursor = MagicMock()
     mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_reports
-    mock_mongo.db.reports.find.return_value = mock_cursor
+    mock_cursor.limit.return_value = mock_reviews
+    mock_mongo.db.reviews.find.return_value = mock_cursor
     
-    response = client.get('/api/reports')
+    response = client.get('/api/reviews')
     
     assert response.status_code == 200
     data = response.get_json()
     assert isinstance(data, list)
     assert len(data) == 2
-    assert data[0]['printer_id'] == '123'
-    assert data[1]['printer_id'] == '456'
+    assert data[0]['space_id'] == '123'
+    assert data[1]['space_id'] == '456'
+
+def test_get_reviews_filtered_by_space(client, mock_mongo):
+    """Test GET /api/reviews with space_id filter"""
+    space_id = '123'
+    mock_reviews = [
+        {
+            '_id': ObjectId(),
+            'space_id': space_id,
+            'rating': 4,
+            'silence': 5,
+            'crowdedness': 2,
+            'review': 'Great!',
+            'reported_by': 'test123',
+            'reporter_email': 'test123@nyu.edu',
+            'timestamp': '2024-01-01T12:00:00'
+        }
+    ]
+    
+    mock_cursor = MagicMock()
+    mock_cursor.sort.return_value = mock_cursor
+    mock_cursor.limit.return_value = mock_reviews
+    mock_mongo.db.reviews.find.return_value = mock_cursor
+    
+    response = client.get(f'/api/reviews?space_id={space_id}')
+    
+    assert response.status_code == 200
+    data = response.get_json()
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]['space_id'] == space_id

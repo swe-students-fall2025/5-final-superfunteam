@@ -1,37 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}Add Printer - NYU Printer Status{% endblock %}
+{% block title %}Add Study Space - NYU Study Space Status{% endblock %}
 
 {% block content %}
 <div class="header-section">
-    <h2>Add New Printer</h2>
-    <p>Manually add a printer to the system</p>
+    <h2>Add New Study Space</h2>
+    <p>Manually add a study space to the system</p>
 </div>
 
 <div class="form-container">
-    <form id="addPrinterForm">
+    <form id="addSpaceForm">
         <div class="form-group">
-            <label for="name">Printer Name *</label>
-            <input type="text" id="name" name="name" required placeholder="e.g., Bobst Library Printer 1">
+            <label for="building">Building *</label>
+            <input type="text" id="building" name="building" required placeholder="e.g., Bobst Library">
         </div>
         
         <div class="form-group">
-            <label for="location">Location *</label>
-            <input type="text" id="location" name="location" required placeholder="e.g., Bobst Library - 2nd Floor">
-        </div>
-        
-        <div class="form-group">
-            <label for="building">Building</label>
-            <input type="text" id="building" name="building" placeholder="e.g., Bobst Library">
-        </div>
-        
-        <div class="form-group">
-            <label for="floor">Floor</label>
-            <input type="text" id="floor" name="floor" placeholder="e.g., 2">
+            <label for="sublocation">Sub-Location *</label>
+            <input type="text" id="sublocation" name="sublocation" required placeholder="e.g., 2nd Floor Study Area">
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Add Printer</button>
+            <button type="submit" class="btn btn-primary">Add Study Space</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
         </div>
         
@@ -73,7 +63,7 @@
 
 .form-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #57068C;
 }
 
 .form-actions {
@@ -95,12 +85,12 @@
 }
 
 .btn-primary {
-    background: #667eea;
+    background: #57068C;
     color: white;
 }
 
 .btn-primary:hover {
-    background: #5568d3;
+    background: #57068C;
 }
 
 .btn-secondary {
@@ -144,28 +134,26 @@
 
 {% block extra_js %}
 <script>
-    document.getElementById('addPrinterForm').addEventListener('submit', async function(e) {
+    document.getElementById('addSpaceForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const formData = {
-            name: document.getElementById('name').value.trim(),
-            location: document.getElementById('location').value.trim(),
-            building: document.getElementById('building').value.trim() || undefined,
-            floor: document.getElementById('floor').value.trim() || undefined
+            building: document.getElementById('building').value.trim(),
+            sublocation: document.getElementById('sublocation').value.trim()
         };
         
         // Validate required fields
-        if (!formData.name || !formData.location) {
-            showMessage('Please fill in all required fields (Name and Location)', 'error');
+        if (!formData.building || !formData.sublocation) {
+            showMessage('Please fill in all required fields (Building and Sub-Location)', 'error');
             return;
         }
         
         const messageDiv = document.getElementById('formMessage');
-        messageDiv.textContent = 'Adding printer...';
+        messageDiv.textContent = 'Adding study space...';
         messageDiv.className = 'form-message info';
         
         try {
-            const response = await fetch('/api/printers', {
+            const response = await fetch('/api/spaces', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -176,12 +164,12 @@
             const data = await response.json();
             
             if (response.ok) {
-                showMessage('Printer added successfully! Redirecting...', 'success');
+                showMessage('Study space added successfully! Redirecting...', 'success');
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 1500);
             } else {
-                showMessage('Error: ' + (data.error || 'Failed to add printer'), 'error');
+                showMessage('Error: ' + (data.error || 'Failed to add study space'), 'error');
             }
         } catch (error) {
             showMessage('Error: ' + error.message, 'error');
@@ -195,4 +183,3 @@
     }
 </script>
 {% endblock %}
-
