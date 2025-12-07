@@ -1,91 +1,91 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: nyu-printer-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: nyu_printers
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - printer-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+    mongodb:
+        image: mongo:7.0
+        container_name: nyu-study-spaces-mongodb
+        restart: unless-stopped
+        ports:
+            - "27017:27017"
+        environment:
+            MONGO_INITDB_DATABASE: proj4
+        volumes:
+            - mongodb_data:/data/db
+        networks:
+            - study-spaces-network
+        healthcheck:
+            test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
-  webapp:
-    build:
-      context: ./webapp
-      dockerfile: Dockerfile
-    container_name: nyu-printer-webapp
-    restart: unless-stopped
-    ports:
-      - "5001:5000"
-    env_file:
-      - .env
-    environment:
-      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/nyu_study_spaces}
-      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
-      - FLASK_ENV=${FLASK_ENV:-production}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - printer-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    webapp:
+        build:
+            context: ./webapp
+            dockerfile: Dockerfile
+        container_name: nyu-study-spaces-webapp
+        restart: unless-stopped
+        ports:
+            - "5001:5000"
+        env_file:
+            - .env
+        environment:
+            - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/proj4}
+            - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
+            - FLASK_ENV=${FLASK_ENV:-production}
+        depends_on:
+            mongodb:
+                condition: service_healthy
+        networks:
+            - study-spaces-network
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
 
-  setup:
-    build:
-      context: ./webapp
-      dockerfile: Dockerfile
-    container_name: nyu-printer-setup
-    command: sh -c "python db_schema.py && python seed_data.py"
-    env_file:
-      - .env
-    environment:
-      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/nyu_study_spaces}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - printer-network
-    profiles:
-      - setup
+    setup:
+        build:
+            context: ./webapp
+            dockerfile: Dockerfile
+        container_name: nyu-study-spaces-setup
+        command: sh -c "python db_schema.py && python seed_data.py"
+        env_file:
+            - .env
+        environment:
+            - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/proj4}
+        depends_on:
+            mongodb:
+                condition: service_healthy
+        networks:
+            - study-spaces-network
+        profiles:
+            - setup
 
-  setup-production:
-    build:
-      context: ./webapp
-      dockerfile: Dockerfile
-    container_name: nyu-printer-setup-production
-    command: sh -c "python db_schema.py && python production_data.py"
-    env_file:
-      - .env
-    environment:
-      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/nyu_study_spaces}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - printer-network
-    profiles:
-      - production-setup
+    setup-production:
+        build:
+            context: ./webapp
+            dockerfile: Dockerfile
+        container_name: nyu-study-spaces-setup-production
+        command: sh -c "python db_schema.py && python production_data.py"
+        env_file:
+            - .env
+        environment:
+            - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/proj4}
+        depends_on:
+            mongodb:
+                condition: service_healthy
+        networks:
+            - study-spaces-network
+        profiles:
+            - production-setup
 
 networks:
-  printer-network:
-    driver: bridge
+    study-spaces-network:
+        driver: bridge
 
 volumes:
-  mongodb_data:
-    driver: local
+    mongodb_data:
+        driver: local
