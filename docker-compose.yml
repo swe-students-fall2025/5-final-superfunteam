@@ -28,8 +28,10 @@ services:
     restart: unless-stopped
     ports:
       - "5001:5000"
+    env_file:
+      - .env
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/nyu_printers
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/nyu_study_spaces}
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
       - FLASK_ENV=${FLASK_ENV:-production}
     depends_on:
@@ -50,8 +52,10 @@ services:
       dockerfile: Dockerfile
     container_name: nyu-printer-setup
     command: sh -c "python db_schema.py && python seed_data.py"
+    env_file:
+      - .env
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/nyu_printers
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/nyu_study_spaces}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -66,8 +70,10 @@ services:
       dockerfile: Dockerfile
     container_name: nyu-printer-setup-production
     command: sh -c "python db_schema.py && python production_data.py"
+    env_file:
+      - .env
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/nyu_printers
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/nyu_study_spaces}
     depends_on:
       mongodb:
         condition: service_healthy
