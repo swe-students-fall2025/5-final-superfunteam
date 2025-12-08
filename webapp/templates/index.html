@@ -83,12 +83,6 @@
     {% endif %}
 </div>
 
-<div class="auto-refresh">
-    <label>
-        <input type="checkbox" id="autoRefresh" checked>
-        Auto-refresh every 30 seconds
-    </label>
-</div>
 
 <!-- Review Modal -->
 <div id="reviewModal" class="modal">
@@ -152,25 +146,9 @@
 
 {% block extra_js %}
 <script>
-    // Auto-refresh functionality
-    let refreshInterval;
-    const autoRefreshCheckbox = document.getElementById('autoRefresh');
-    
+    // Refresh functionality
     function refreshSpaces() {
         location.reload();
-    }
-    
-    autoRefreshCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            refreshInterval = setInterval(refreshSpaces, 30000);
-        } else {
-            clearInterval(refreshInterval);
-        }
-    });
-    
-    // Start auto-refresh
-    if (autoRefreshCheckbox.checked) {
-        refreshInterval = setInterval(refreshSpaces, 30000);
     }
     
     // Filter functionality
