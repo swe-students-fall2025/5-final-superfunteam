@@ -1,4 +1,10 @@
+import os
 import pytest
+
+# Force a local Mongo URI during tests to avoid SRV DNS lookups
+os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017/testdb")
+os.environ.setdefault("FLASK_ENV", "test")
+
 from app import app
 from unittest.mock import MagicMock, patch
 from app import load_user, mongo, User
@@ -72,6 +78,23 @@ def test_load_user_db_exception():
 
         assert "DB error" in str(excinfo.value)
         mock_users.find_one.assert_called_once_with({"email": "error@nyu.edu"})
+
+def test_load_user_with_objectid():
+    """Ensure load_user can resolve sessions stored with Mongo _id"""
+    oid = ObjectId()
+    mock_user_data = {
+        "email": "obj@nyu.edu",
+        "_id": oid,
+    }
+
+    with patch.object(mongo.db, "users", create=True) as mock_users:
+        mock_users.find_one.return_value = mock_user_data
+
+        user_obj = load_user(str(oid))
+
+        mock_users.find_one.assert_called_once_with({"_id": oid})
+        assert user_obj.email == "obj@nyu.edu"
+        assert user_obj.id == str(oid)
 
 def test_get_spaces_api(client, mock_mongo):
     """Test GET /api/spaces endpoint"""
