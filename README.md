@@ -1,9 +1,9 @@
 [![Build Status](https://github.com/swe-students-fall2025/5-final-superfunteam/actions/workflows/webapp-ci.yml/badge.svg)](https://github.com/swe-students-fall2025/5-final-superfunteam/actions/workflows/webapp-ci.yml)
 [![Deploy Status](https://github.com/swe-students-fall2025/5-final-superfunteam/actions/workflows/webapp-deploy.yml/badge.svg)](https://github.com/swe-students-fall2025/5-final-superfunteam/actions/workflows/webapp-deploy.yml)
 
-# NYU Printer Status Reporter
+# NYU Study Spaces Status Reporter
 
-A real-time, community-driven monitoring system that reports on the operational status of printers at various NYU locations. Students and staff can submit status reports and quickly find available printers before making trips across campus.
+A real-time, community-driven monitoring system that reports on the status and quality of study spaces at various NYU locations. Students can submit reviews with ratings for silence, crowdedness, and overall quality, helping others find the best study spaces before making trips across campus.
 
 ## Team Members
 
@@ -41,7 +41,7 @@ FLASK_ENV=production
 ### 2. MongoDB Setup
 
 No additional configuration needed. MongoDB will automatically:
-- Create the `nyu_printers` database on first run
+- Create the database (default: `proj4`) on first run
 - Store data in a Docker volume for persistence
 
 ## Running the Application
@@ -88,7 +88,7 @@ pip install -r requirements.txt
 
 2. **Set environment variables**:
 ```bash
-export MONGO_URI=mongodb://localhost:27017/nyu_printers
+export MONGO_URI=mongodb://localhost:27017/proj4
 export SECRET_KEY=dev-secret-key
 export FLASK_ENV=development
 ```
@@ -105,50 +105,46 @@ python app.py
 
 ## Seeding the Database
 
-To populate the database with sample printer locations:
+To populate the database with sample study spaces:
 
 ```bash
 # Start the containers
 docker-compose up -d
 
-# Add sample printers via API
-curl -X POST http://localhost:5000/api/printers \
+# Add sample study spaces via API
+curl -X POST http://localhost:5000/api/spaces \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Bobst Library Printer",
-    "location": "Bobst Library - 2nd Floor",
     "building": "Bobst Library",
-    "floor": "2"
+    "sublocation": "2nd Floor Study Area"
   }'
 
-# Add a status report
-curl -X POST http://localhost:5000/api/reports \
+# Add a review (requires authentication)
+curl -X POST http://localhost:5000/api/reviews \
   -H "Content-Type: application/json" \
+  -H "Cookie: session=YOUR_SESSION_COOKIE" \
   -d '{
-    "printer_id": "PRINTER_ID_HERE",
-    "status": "available",
-    "paper_level": 80,
-    "toner_level": 60,
-    "reported_by": "Student Name"
+    "space_id": "SPACE_ID_HERE",
+    "rating": 4,
+    "silence": 5,
+    "crowdedness": 3,
+    "review": "Great quiet space with good lighting"
   }'
 ```
 
 ## API Endpoints
 
-### Printers
-- `GET /api/printers` - Get all printers
-- `GET /api/printers/<id>` - Get specific printer with recent reports
-- `POST /api/printers` - Add new printer
-- `PUT /api/printers/<id>` - Update printer info
-- `DELETE /api/printers/<id>` - Delete printer
+### Study Spaces
+- `GET /api/spaces` - Get all study spaces
+- `GET /api/spaces/<id>` - Get specific study space with recent reviews
+- `POST /api/spaces` - Add new study space
+- `PUT /api/spaces/<id>` - Update study space info
+- `DELETE /api/spaces/<id>` - Delete study space
 
-### Reports
-- `POST /api/reports` - Submit a printer status report
-- `GET /api/reports` - Get all reports (most recent first)
-- `GET /api/reports?printer_id=<id>` - Get reports for specific printer
-
-### Health Check
-- `GET /health` - Health check endpoint
+### Reviews
+- `POST /api/reviews` - Submit a study space review (requires authentication)
+- `GET /api/reviews` - Get all reviews (most recent first)
+- `GET /api/reviews?space_id=<id>` - Get reviews for specific study space
 
 ## Testing
 
@@ -236,15 +232,9 @@ The project uses GitHub Actions for continuous integration and deployment:
 
 ## Documentation
 
-- **Onboarding Guide**: See [ONBOARDING.md](./ONBOARDING.md) for sprint planning and task breakdown
 - **Database Schema**: See [webapp/README.md](./webapp/README.md) for database setup and schema documentation
 - **Deployment Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions and CI/CD setup
 
 ## License
 
 This project is part of an academic exercise for NYU's Software Engineering course.
-
-## Support
-
-For issues or questions, please open an issue on GitHub or contact any team member.
-
