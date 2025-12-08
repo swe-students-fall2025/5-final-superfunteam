@@ -25,6 +25,10 @@ app = Flask(__name__)
 
 # MongoDB configuration
 mongo_uri = os.getenv("MONGO_URI")
+
+# When running tests, avoid parsing SRV URIs that require DNS lookups
+if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("FLASK_ENV") == "test":
+    mongo_uri = "mongodb://localhost:27017/testdb"
 if not mongo_uri:
     mongodb_host = os.getenv("MONGODB_HOST", "localhost")
     mongodb_port = os.getenv("MONGODB_PORT", "27017")
@@ -42,9 +46,11 @@ app.config["MONGO_URI"] = mongo_uri
 app.config["SECRET_KEY"] = os.environ.get(
     "SECRET_KEY", "dev-secret-key-change-in-production"
 )
-app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") == "production"
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 
 mongo = PyMongo(app)
 login_manager = LoginManager()
@@ -64,10 +70,21 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Load user from database"""
-    user = mongo.db.users.find_one({"email": user_id})
-    if user:
-        return User(email=user["email"], user_id=str(user["_id"]))
+    """Load user from database using either Mongo _id or email stored in session"""
+    queries = []
+
+    try:
+        queries.append({"_id": ObjectId(user_id)})
+    except (InvalidId, TypeError):
+        pass
+
+    # Fallback for any sessions that might have stored the email directly
+    queries.append({"email": user_id})
+
+    for query in queries:
+        user = mongo.db.users.find_one(query)
+        if user:
+            return User(email=user["email"], user_id=str(user.get("_id", user["email"])))
     return None
 
 
