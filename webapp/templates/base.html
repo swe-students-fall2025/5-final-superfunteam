@@ -19,9 +19,7 @@
                     <li><a href="{{ url_for('map_page') }}">Map</a></li>
                     <li><a href="{{ url_for('add_space_page') }}">Add Study Space</a></li>
                     {% if current_user.is_authenticated %}
-                    <li class="user-info">
-                        <span class="user-name">{{ current_user.netid }}</span>
-                    </li>
+                    <li><a href="{{ url_for('profile_page') }}">Profile</a></li>
                     <li><a href="{{ url_for('logout') }}" class="logout-btn">Logout</a></li>
                     {% else %}
                     <li><a href="{{ url_for('login_page') }}" class="login-btn">Login</a></li>
@@ -35,11 +33,6 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 NYU Study Space Status | Team SuperFun</p>
-        </div>
-    </footer>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
