@@ -86,9 +86,9 @@ def load_user(user_id):
         user = mongo.db.users.find_one(query)
         if user:
             return User(
-                email=user["email"], 
+                email=user["email"],
                 user_id=str(user.get("_id", user["email"])),
-                display_name=user.get("display_name")
+                display_name=user.get("display_name"),
             )
     return None
 
@@ -98,6 +98,16 @@ def validate_nyu_email(email):
     if not email or not isinstance(email, str):
         return False
     return email.lower().endswith("@nyu.edu")
+
+
+def get_display_name_for_email(email):
+    """Get the current display_name for a user by email, or return netid if not set"""
+    if not email:
+        return None
+    user = mongo.db.users.find_one({"email": email.lower()})
+    if user:
+        return user.get("display_name") or user.get("netid")
+    return None
 
 
 @app.route("/api/register", methods=["POST"])
@@ -165,9 +175,9 @@ def login():
 
     # Create User object and log in
     user_obj = User(
-        email=user["email"], 
+        email=user["email"],
         user_id=str(user["_id"]),
-        display_name=user.get("display_name")
+        display_name=user.get("display_name"),
     )
     login_user(user_obj)
 
@@ -191,7 +201,7 @@ def get_current_user():
     if not user:
         # Fallback to email if ObjectId fails
         user = mongo.db.users.find_one({"email": current_user.email})
-    
+
     return jsonify(
         {
             "email": current_user.email,
@@ -206,35 +216,37 @@ def get_current_user():
 def update_user_profile():
     """Update user profile (password and/or display name)"""
     data = request.get_json()
-    
+
     # Find user in database
     try:
         query = {"_id": ObjectId(current_user.id)}
     except (InvalidId, TypeError):
         query = {"email": current_user.email}
-    
+
     user = mongo.db.users.find_one(query)
     if not user:
         return jsonify({"error": "User not found"}), 404
-    
+
     update_data = {}
-    
+
     # Update password if provided
     if "password" in data and data["password"]:
         new_password = data["password"]
         if len(new_password) < 6:
             return jsonify({"error": "Password must be at least 6 characters"}), 400
-        
+
         # Verify current password if provided
         if "current_password" in data and data["current_password"]:
             if not checkpw(
                 data["current_password"].encode("utf-8"),
-                user["password_hash"].encode("utf-8")
+                user["password_hash"].encode("utf-8"),
             ):
                 return jsonify({"error": "Current password is incorrect"}), 401
-        
-        update_data["password_hash"] = hashpw(new_password.encode("utf-8"), gensalt()).decode("utf-8")
-    
+
+        update_data["password_hash"] = hashpw(
+            new_password.encode("utf-8"), gensalt()
+        ).decode("utf-8")
+
     # Update display name if provided
     if "display_name" in data:
         display_name = data["display_name"].strip() if data["display_name"] else None
@@ -242,17 +254,17 @@ def update_user_profile():
         if display_name == "":
             display_name = None
         update_data["display_name"] = display_name
-    
+
     if not update_data:
         return jsonify({"error": "No fields to update"}), 400
-    
+
     # Update user in database
     mongo.db.users.update_one(query, {"$set": update_data})
-    
+
     # Update current_user object if display_name changed
     if "display_name" in update_data:
         current_user.display_name = update_data["display_name"]
-    
+
     return jsonify({"message": "Profile updated successfully"}), 200
 
 
@@ -276,11 +288,12 @@ def index():
     """Home page showing all study spaces with their average ratings"""
     spaces = list(mongo.db.study_spaces.find())
 
-    # Get average ratings and recent review for each space
+    # Get average ratings and recent reviews for each space
     for space in spaces:
         reviews = list(
             mongo.db.reviews.find({"space_id": str(space["_id"])})
             .sort("timestamp", -1)
+            .limit(5)  # Get up to 5 most recent reviews
         )
 
         if reviews:
@@ -288,14 +301,37 @@ def index():
             avg_rating = sum(r["rating"] for r in reviews) / len(reviews)
             avg_silence = sum(r["silence"] for r in reviews) / len(reviews)
             avg_crowdedness = sum(r["crowdedness"] for r in reviews) / len(reviews)
-            
+
             space["avg_rating"] = round(avg_rating, 1)
             space["avg_silence"] = round(avg_silence, 1)
             space["avg_crowdedness"] = round(avg_crowdedness, 1)
-            space["review_count"] = len(reviews)
+            # Get total review count (not just the 5 we fetched)
+            all_reviews = list(mongo.db.reviews.find({"space_id": str(space["_id"])}))
+            space["review_count"] = len(all_reviews)
             space["last_updated"] = reviews[0]["timestamp"]
-            space["last_review"] = reviews[0].get("review", "")
-            space["reported_by"] = reviews[0].get("reported_by", "Anonymous")
+
+            # Get recent reviews with display names
+            recent_reviews = []
+            for review in reviews:
+                reporter_email = review.get("reporter_email")
+                display_name = (
+                    get_display_name_for_email(reporter_email)
+                    if reporter_email
+                    else review.get("reported_by", "Anonymous")
+                )
+                recent_reviews.append(
+                    {
+                        "review": review.get("review", ""),
+                        "reported_by": display_name,
+                        "timestamp": review.get("timestamp"),
+                        "rating": review.get("rating"),
+                    }
+                )
+            space["recent_reviews"] = recent_reviews
+            space["last_review"] = recent_reviews[0]["review"] if recent_reviews else ""
+            space["reported_by"] = (
+                recent_reviews[0]["reported_by"] if recent_reviews else "Anonymous"
+            )
         else:
             space["avg_rating"] = 0
             space["avg_silence"] = 0
@@ -304,6 +340,7 @@ def index():
             space["last_updated"] = None
             space["last_review"] = ""
             space["reported_by"] = None
+            space["recent_reviews"] = []
 
     return render_template("index.html", spaces=spaces)
 
@@ -318,13 +355,15 @@ def add_space_page():
 def map_page():
     """Page showing study spaces on Google Maps"""
     spaces = list(mongo.db.study_spaces.find())
-    
+
     # Format spaces for display
     for space in spaces:
         space["_id"] = str(space["_id"])
         # Create a search query for Google Maps (building + sublocation)
-        space["map_query"] = f"{space.get('building', '')} {space.get('sublocation', '')} NYU"
-    
+        space["map_query"] = (
+            f"{space.get('building', '')} {space.get('sublocation', '')} NYU"
+        )
+
     return render_template("map.html", spaces=spaces)
 
 
@@ -363,13 +402,19 @@ def get_space(space_id):
 
         for review in reviews:
             review["_id"] = str(review["_id"])
+            # Update reported_by with current display_name if available
+            reporter_email = review.get("reporter_email")
+            if reporter_email:
+                display_name = get_display_name_for_email(reporter_email)
+                if display_name:
+                    review["reported_by"] = display_name
 
         # Calculate averages
         if reviews:
             avg_rating = sum(r["rating"] for r in reviews) / len(reviews)
             avg_silence = sum(r["silence"] for r in reviews) / len(reviews)
             avg_crowdedness = sum(r["crowdedness"] for r in reviews) / len(reviews)
-            
+
             space["avg_rating"] = round(avg_rating, 1)
             space["avg_silence"] = round(avg_silence, 1)
             space["avg_crowdedness"] = round(avg_crowdedness, 1)
@@ -392,8 +437,11 @@ def add_space():
     data = request.get_json()
 
     if not data or "building" not in data or "sublocation" not in data:
-        return jsonify({"error": "Missing required fields: building and sublocation"}), 400
-    
+        return (
+            jsonify({"error": "Missing required fields: building and sublocation"}),
+            400,
+        )
+
     space = {
         "building": data.get("building"),
         "sublocation": data.get("sublocation"),
@@ -404,20 +452,24 @@ def add_space():
         result = mongo.db.study_spaces.insert_one(space)
         space["_id"] = str(result.inserted_id)
         space_id = str(result.inserted_id)
-        
+
         # If silence and crowdedness are provided and user is authenticated, create initial review
         silence = data.get("silence")
         crowdedness = data.get("crowdedness")
-        if silence is not None and crowdedness is not None and current_user.is_authenticated:
+        if (
+            silence is not None
+            and crowdedness is not None
+            and current_user.is_authenticated
+        ):
             try:
                 silence = int(silence)
                 crowdedness = int(crowdedness)
-                
+
                 if 1 <= silence <= 5 and 1 <= crowdedness <= 5:
                     # Create initial review with default rating (average of silence and crowdedness)
                     # or use a default rating of 3
                     initial_rating = 3  # Default rating
-                    
+
                     review = {
                         "space_id": space_id,
                         "rating": initial_rating,
@@ -432,7 +484,7 @@ def add_space():
             except (ValueError, TypeError):
                 # Invalid values, skip review creation
                 pass
-        
+
         return jsonify(space), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -462,7 +514,7 @@ def update_space(space_id):
             result = mongo.db.study_spaces.update_one(query, {"$set": update_data})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        
+
         if result.matched_count:
             return jsonify({"message": "Study space updated successfully"})
         return jsonify({"error": "Study space not found"}), 404
@@ -482,7 +534,7 @@ def delete_space(space_id):
         result = mongo.db.study_spaces.delete_one(query)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
     if result.deleted_count:
         return jsonify({"message": "Study space deleted successfully"})
     return jsonify({"error": "Study space not found"}), 404
@@ -497,7 +549,7 @@ def submit_review():
     # Validate required fields
     if not data.get("space_id"):
         return jsonify({"error": "space_id is required"}), 400
-    
+
     if not all(key in data for key in ["rating", "silence", "crowdedness"]):
         return jsonify({"error": "rating, silence, and crowdedness are required"}), 400
 
@@ -511,7 +563,7 @@ def submit_review():
         rating = int(data["rating"])
         silence = int(data["silence"])
         crowdedness = int(data["crowdedness"])
-        
+
         if not (1 <= rating <= 5 and 1 <= silence <= 5 and 1 <= crowdedness <= 5):
             return jsonify({"error": "All ratings must be between 1 and 5"}), 400
     except (ValueError, TypeError):
@@ -549,6 +601,12 @@ def get_reviews():
 
     for review in reviews:
         review["_id"] = str(review["_id"])
+        # Update reported_by with current display_name if available
+        reporter_email = review.get("reporter_email")
+        if reporter_email:
+            display_name = get_display_name_for_email(reporter_email)
+            if display_name:
+                review["reported_by"] = display_name
 
     return jsonify(reviews)
 

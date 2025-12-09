@@ -17,69 +17,98 @@
 
 <div class="space-grid" id="spaceGrid">
     {% if spaces %}
-        {% for space in spaces %}
-        <div class="space-card" 
-             data-rating="{{ space.avg_rating }}" 
-             data-silence="{{ space.avg_silence }}"
-             data-crowdedness="{{ space.avg_crowdedness }}">
-            <div class="space-header">
-                <h3>{{ space.building }}</h3>
-                <div class="rating-badge">
-                    <span class="stars">{{ '★' * (space.avg_rating|int) }}{{ '☆' * (5 - (space.avg_rating|int)) }}</span>
-                    <span class="rating-number">{{ space.avg_rating }}/5</span>
-                </div>
+    {% for space in spaces %}
+    <div class="space-card" data-rating="{{ space.avg_rating }}" data-silence="{{ space.avg_silence }}"
+        data-crowdedness="{{ space.avg_crowdedness }}">
+        <div class="space-header">
+            <h3>{{ space.building }}</h3>
+            <div class="rating-badge">
+                <span class="stars">{{ '★' * (space.avg_rating|int) }}{{ '☆' * (5 - (space.avg_rating|int)) }}</span>
+                <span class="rating-number">{{ space.avg_rating }}/5</span>
             </div>
-            <div class="space-details">
-                <p><strong>Location:</strong> {{ space.sublocation }}</p>
-                
-                <div class="rating-row">
-                    <label>Overall Rating:</label>
-                    <div class="rating-stars">{{ '★' * (space.avg_rating|int) }}{{ '☆' * (5 - (space.avg_rating|int)) }}</div>
-                    <span>{{ space.avg_rating }}/5</span>
+        </div>
+        <div class="space-details">
+            <p><strong>Location:</strong> {{ space.sublocation }}</p>
+
+            <div class="rating-row">
+                <label>Overall Rating:</label>
+                <div class="rating-stars">{{ '★' * (space.avg_rating|int) }}{{ '☆' * (5 - (space.avg_rating|int)) }}
                 </div>
-                
-                <div class="rating-row">
-                    <label>Silence Level:</label>
-                    <div class="rating-stars">{{ '★' * (space.avg_silence|int) }}{{ '☆' * (5 - (space.avg_silence|int)) }}</div>
-                    <span>{{ space.avg_silence }}/5</span>
+                <span>{{ space.avg_rating }}/5</span>
+            </div>
+
+            <div class="rating-row">
+                <label>Silence Level:</label>
+                <div class="rating-stars">{{ '★' * (space.avg_silence|int) }}{{ '☆' * (5 - (space.avg_silence|int)) }}
                 </div>
-                
-                <div class="rating-row">
-                    <label>Crowdedness:</label>
-                    <div class="rating-stars">{{ '★' * (space.avg_crowdedness|int) }}{{ '☆' * (5 - (space.avg_crowdedness|int)) }}</div>
-                    <span>{{ space.avg_crowdedness }}/5</span>
-                </div>
-                
-                <p class="review-count">{{ space.review_count }} review{{ 's' if space.review_count != 1 else '' }}</p>
-                
-                {% if space.last_review %}
-                <div class="latest-review">
-                    <p><em>"{{ space.last_review[:100] }}{{ '...' if space.last_review|length > 100 else '' }}"</em></p>
-                </div>
-                {% endif %}
-                
-                <p class="last-updated">
-                    Last reviewed: {{ space.last_updated.strftime('%Y-%m-%d %H:%M') if space.last_updated else 'No reviews yet' }}
-                    {% if space.reported_by %}
-                    <br><small>by {{ space.reported_by }}</small>
+                <span>{{ space.avg_silence }}/5</span>
+            </div>
+
+            <div class="rating-row">
+                <label>Crowdedness:</label>
+                <div class="rating-stars">{{ '★' * (space.avg_crowdedness|int) }}{{ '☆' * (5 -
+                    (space.avg_crowdedness|int)) }}</div>
+                <span>{{ space.avg_crowdedness }}/5</span>
+            </div>
+
+            <p class="review-count">{{ space.review_count }} review{{ 's' if space.review_count != 1 else '' }}</p>
+
+            {% if space.recent_reviews %}
+            <div class="recent-reviews">
+                <h4 style="margin-bottom: 0.5rem; color: #333; font-size: 0.95rem;">Recent Reviews:</h4>
+                {% for review in space.recent_reviews[:3] %}
+                <div class="review-item"
+                    style="margin-bottom: 0.8rem; padding: 0.6rem; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #57068C;">
+                    {% if review.review %}
+                    <p style="margin: 0 0 0.3rem 0; font-size: 0.85rem; color: #555;"><em>"{{ review.review[:80] }}{{
+                            '...' if review.review|length > 80 else '' }}"</em></p>
                     {% endif %}
-                </p>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #999;">
+                        <span><strong>{{ review.reported_by }}</strong></span>
+                        <span>{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+                        <span>{{ review.timestamp.strftime('%m/%d') if review.timestamp else '' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if space.review_count > 3 %}
+                <p style="font-size: 0.8rem; color: #666; font-style: italic; margin-top: 0.5rem;">+ {{
+                    space.review_count - 3 }} more review{{ 's' if (space.review_count - 3) != 1 else '' }}</p>
+                {% endif %}
             </div>
-            {% if current_user.is_authenticated %}
-            <button class="review-btn" onclick="openReviewModal('{{ space._id }}', '{{ space.building }}', '{{ space.sublocation }}')">
-                Submit Review
-            </button>
-            {% else %}
-            <button class="review-btn review-btn-disabled" title="Login required to submit review">
-                Login to Review
-            </button>
+            {% elif space.last_review %}
+            <div class="latest-review">
+                <p><em>"{{ space.last_review[:100] }}{{ '...' if space.last_review|length > 100 else '' }}"</em></p>
+                {% if space.reported_by %}
+                <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">— {{ space.reported_by }}</p>
+                {% endif %}
+            </div>
             {% endif %}
+
+            <p class="last-updated">
+                {% if space.last_updated %}
+                Last reviewed: {{ space.last_updated.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                No reviews yet
+                {% endif %}
+            </p>
         </div>
-        {% endfor %}
+        {% if current_user.is_authenticated %}
+        <button class="review-btn"
+            onclick="openReviewModal('{{ space._id }}', '{{ space.building }}', '{{ space.sublocation }}')">
+            Submit Review
+        </button>
+        {% else %}
+        <button class="review-btn review-btn-disabled" title="Login required to submit review">
+            Login to Review
+        </button>
+        {% endif %}
+    </div>
+    {% endfor %}
     {% else %}
-        <div class="no-spaces">
-            <p>No study spaces found. Add some study spaces to get started!</p>
-        </div>
+    <div class="no-spaces">
+        <p>No study spaces found. Add some study spaces to get started!</p>
+    </div>
     {% endif %}
 </div>
 
@@ -92,7 +121,7 @@
         <p id="modalSpaceName"></p>
         <form id="reviewForm">
             <input type="hidden" id="reviewSpaceId" name="space_id">
-            
+
             <label for="rating">Overall Rating (1-5 stars):</label>
             <div class="star-rating">
                 <input type="radio" id="rating5" name="rating" value="5" required>
@@ -106,7 +135,7 @@
                 <input type="radio" id="rating1" name="rating" value="1">
                 <label for="rating1">★</label>
             </div>
-            
+
             <label for="silence">Silence Level (1-5, 5 = very quiet):</label>
             <div class="star-rating">
                 <input type="radio" id="silence5" name="silence" value="5" required>
@@ -120,7 +149,7 @@
                 <input type="radio" id="silence1" name="silence" value="1">
                 <label for="silence1">★</label>
             </div>
-            
+
             <label for="crowdedness">Crowdedness (1-5, 5 = very crowded):</label>
             <div class="star-rating">
                 <input type="radio" id="crowdedness5" name="crowdedness" value="5" required>
@@ -134,10 +163,11 @@
                 <input type="radio" id="crowdedness1" name="crowdedness" value="1">
                 <label for="crowdedness1">★</label>
             </div>
-            
+
             <label for="review">Your Review (optional):</label>
-            <textarea id="review" name="review" rows="4" placeholder="Share your experience with this study space..."></textarea>
-            
+            <textarea id="review" name="review" rows="4"
+                placeholder="Share your experience with this study space..."></textarea>
+
             <button type="submit" class="btn">Submit Review</button>
         </form>
     </div>
@@ -150,25 +180,25 @@
     function refreshSpaces() {
         location.reload();
     }
-    
+
     // Filter functionality
     const filterButtons = document.querySelectorAll('.filter-btn');
     const spaceCards = document.querySelectorAll('.space-card');
-    
+
     filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             filterButtons.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
-            
+
             const filter = this.dataset.filter;
-            
+
             spaceCards.forEach(card => {
                 const rating = parseFloat(card.dataset.rating);
                 const silence = parseFloat(card.dataset.silence);
                 const crowdedness = parseFloat(card.dataset.crowdedness);
-                
+
                 let show = false;
-                
+
                 if (filter === 'all') {
                     show = true;
                 } else if (filter === 'high-rated' && rating >= 4) {
@@ -178,37 +208,37 @@
                 } else if (filter === 'available' && crowdedness <= 2) {
                     show = true;
                 }
-                
+
                 card.style.display = show ? 'block' : 'none';
             });
         });
     });
-    
+
     // Review Modal functionality
     const modal = document.getElementById('reviewModal');
-    
+
     function openReviewModal(spaceId, building, sublocation) {
         document.getElementById('reviewSpaceId').value = spaceId;
         document.getElementById('modalSpaceName').textContent = building + ' - ' + sublocation;
         modal.style.display = 'block';
     }
-    
+
     function closeReviewModal() {
         modal.style.display = 'none';
         document.getElementById('reviewForm').reset();
     }
-    
+
     // Close modal when clicking outside
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (event.target == modal) {
             closeReviewModal();
         }
     }
-    
+
     // Handle form submission
-    document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+    document.getElementById('reviewForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-        
+
         const formData = {
             space_id: document.getElementById('reviewSpaceId').value,
             rating: parseInt(document.querySelector('input[name="rating"]:checked').value),
@@ -216,7 +246,7 @@
             crowdedness: parseInt(document.querySelector('input[name="crowdedness"]:checked').value),
             review: document.getElementById('review').value
         };
-        
+
         try {
             const response = await fetch('/api/reviews', {
                 method: 'POST',
@@ -226,7 +256,7 @@
                 credentials: 'same-origin',
                 body: JSON.stringify(formData)
             });
-            
+
             if (response.ok) {
                 alert('Thank you for your review! Your feedback has been submitted.');
                 closeReviewModal();
