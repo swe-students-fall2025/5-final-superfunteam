@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - NYU Study Spaces Status{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h2>Profile Settings</h2>
+    <p>Manage your account settings</p>
+</div>
+
+<div class="form-container">
+    <!-- Account Info Section -->
+    <div class="profile-section">
+        <h3>Account Information</h3>
+        <div class="account-info">
+            <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
+            <p><strong>NetID:</strong> <span id="userNetID">Loading...</span></p>
+            <p><strong>Display Name:</strong> <span id="userDisplayName">Not set</span></p>
+        </div>
+    </div>
+    <!-- Display Name Section -->
+    <div class="profile-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ddd;">
+        <h3>Display Name</h3>
+        <p class="section-description">Set a display name to show instead of your NetID. Leave empty to use your NetID.
+        </p>
+        <form id="displayNameForm">
+            <div class="form-group">
+                <label for="display_name">Display Name</label>
+                <input type="text" id="display_name" name="display_name" placeholder="Enter your display name"
+                    maxlength="50">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Update Display Name</button>
+            </div>
+
+            <div id="displayNameMessage" class="form-message"></div>
+        </form>
+    </div>
+
+    <!-- Password Change Section -->
+    <div class="profile-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ddd;">
+        <h3>Change Password</h3>
+        <p class="section-description">Update your password to keep your account secure.</p>
+        <form id="passwordForm">
+            <div class="form-group">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" required minlength="6"
+                    placeholder="Minimum 6 characters">
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Change Password</button>
+            </div>
+
+            <div id="passwordMessage" class="form-message"></div>
+        </form>
+    </div>
+
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-section {
+        margin-bottom: 1rem;
+    }
+
+    .profile-section h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.5rem;
+    }
+
+    .section-description {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: #57068C;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2d0449;
+    }
+
+    .form-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        display: none;
+    }
+
+    .form-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+    }
+
+    .form-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
+
+    .form-message.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+        display: block;
+    }
+
+    .account-info {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 4px;
+    }
+
+    .account-info p {
+        margin: 0.75rem 0;
+        color: #333;
+    }
+
+    .account-info strong {
+        color: #555;
+        display: inline-block;
+        min-width: 120px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load user info on page load
+    async function loadUserInfo() {
+        try {
+            const response = await fetch('/api/user', {
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('userEmail').textContent = data.email;
+                document.getElementById('userNetID').textContent = data.netid;
+                document.getElementById('userDisplayName').textContent = data.display_name || 'Not set';
+
+                // Pre-fill display name if it exists
+                if (data.display_name) {
+                    document.getElementById('display_name').value = data.display_name;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading user info:', error);
+        }
+    }
+
+    // Display name form
+    document.getElementById('displayNameForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const displayName = document.getElementById('display_name').value.trim();
+        const messageDiv = document.getElementById('displayNameMessage');
+
+        messageDiv.textContent = 'Updating...';
+        messageDiv.className = 'form-message info';
+
+        try {
+            const response = await fetch('/api/user', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ display_name: displayName })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('Display name updated successfully!', 'success', messageDiv);
+                document.getElementById('userDisplayName').textContent = displayName || 'Not set';
+                // Reload page after a short delay to update navigation
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage('Error: ' + (data.error || 'Update failed'), 'error', messageDiv);
+            }
+        } catch (error) {
+            showMessage('Error: ' + error.message, 'error', messageDiv);
+        }
+    });
+
+    // Password form
+    document.getElementById('passwordForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const currentPassword = document.getElementById('current_password').value;
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const messageDiv = document.getElementById('passwordMessage');
+
+        // Validate passwords match
+        if (newPassword !== confirmPassword) {
+            showMessage('New passwords do not match', 'error', messageDiv);
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            showMessage('Password must be at least 6 characters', 'error', messageDiv);
+            return;
+        }
+
+        messageDiv.textContent = 'Changing password...';
+        messageDiv.className = 'form-message info';
+
+        try {
+            const response = await fetch('/api/user', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    password: newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('Password changed successfully!', 'success', messageDiv);
+                // Clear form
+                document.getElementById('passwordForm').reset();
+            } else {
+                showMessage('Error: ' + (data.error || 'Password change failed'), 'error', messageDiv);
+            }
+        } catch (error) {
+            showMessage('Error: ' + error.message, 'error', messageDiv);
+        }
+    });
+
+    function showMessage(message, type, messageDiv) {
+        messageDiv.textContent = message;
+        messageDiv.className = 'form-message ' + type;
+    }
+
+    // Load user info when page loads
+    loadUserInfo();
+</script>
+{% endblock %}

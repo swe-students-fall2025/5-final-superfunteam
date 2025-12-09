@@ -60,12 +60,13 @@ login_manager.login_view = "login_page"
 
 # User class for Flask-Login
 class User(UserMixin):
-    def __init__(self, email, user_id=None):
+    def __init__(self, email, user_id=None, display_name=None):
         self.id = user_id or email  # Use email as ID
         self.email = email
         self.netid = (
             email.split("@")[0] if "@" in email else email
         )  # Extract netid from email
+        self.display_name = display_name
 
 
 @login_manager.user_loader
@@ -84,7 +85,11 @@ def load_user(user_id):
     for query in queries:
         user = mongo.db.users.find_one(query)
         if user:
-            return User(email=user["email"], user_id=str(user.get("_id", user["email"])))
+            return User(
+                email=user["email"], 
+                user_id=str(user.get("_id", user["email"])),
+                display_name=user.get("display_name")
+            )
     return None
 
 
@@ -159,7 +164,11 @@ def login():
         return jsonify({"error": "Invalid email or password"}), 401
 
     # Create User object and log in
-    user_obj = User(email=user["email"], user_id=str(user["_id"]))
+    user_obj = User(
+        email=user["email"], 
+        user_id=str(user["_id"]),
+        display_name=user.get("display_name")
+    )
     login_user(user_obj)
 
     return jsonify(
@@ -177,12 +186,81 @@ def login():
 @login_required
 def get_current_user():
     """Get current authenticated user information"""
+    # Fetch fresh user data from database
+    user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+    if not user:
+        # Fallback to email if ObjectId fails
+        user = mongo.db.users.find_one({"email": current_user.email})
+    
     return jsonify(
         {
             "email": current_user.email,
             "netid": current_user.netid,
+            "display_name": user.get("display_name") if user else None,
         }
     )
+
+
+@app.route("/api/user", methods=["PUT"])
+@login_required
+def update_user_profile():
+    """Update user profile (password and/or display name)"""
+    data = request.get_json()
+    
+    # Find user in database
+    try:
+        query = {"_id": ObjectId(current_user.id)}
+    except (InvalidId, TypeError):
+        query = {"email": current_user.email}
+    
+    user = mongo.db.users.find_one(query)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    update_data = {}
+    
+    # Update password if provided
+    if "password" in data and data["password"]:
+        new_password = data["password"]
+        if len(new_password) < 6:
+            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        
+        # Verify current password if provided
+        if "current_password" in data and data["current_password"]:
+            if not checkpw(
+                data["current_password"].encode("utf-8"),
+                user["password_hash"].encode("utf-8")
+            ):
+                return jsonify({"error": "Current password is incorrect"}), 401
+        
+        update_data["password_hash"] = hashpw(new_password.encode("utf-8"), gensalt()).decode("utf-8")
+    
+    # Update display name if provided
+    if "display_name" in data:
+        display_name = data["display_name"].strip() if data["display_name"] else None
+        # Allow empty string to clear display name
+        if display_name == "":
+            display_name = None
+        update_data["display_name"] = display_name
+    
+    if not update_data:
+        return jsonify({"error": "No fields to update"}), 400
+    
+    # Update user in database
+    mongo.db.users.update_one(query, {"$set": update_data})
+    
+    # Update current_user object if display_name changed
+    if "display_name" in update_data:
+        current_user.display_name = update_data["display_name"]
+    
+    return jsonify({"message": "Profile updated successfully"}), 200
+
+
+@app.route("/profile")
+@login_required
+def profile_page():
+    """Profile page for users to change password and display name"""
+    return render_template("profile.html")
 
 
 @app.route("/logout")
