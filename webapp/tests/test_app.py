@@ -206,13 +206,8 @@ def test_add_space_api_with_ratings(client, mock_mongo):
         assert data["building"] == "Bobst Library"
         assert data["sublocation"] == "2nd Floor Study Area"
 
-        # Verify review was created
-        mock_mongo.db.reviews.insert_one.assert_called_once()
-        call_args = mock_mongo.db.reviews.insert_one.call_args[0][0]
-        assert call_args["silence"] == 4
-        assert call_args["crowdedness"] == 2
-        assert call_args["rating"] == 3
-        assert call_args["reported_by"] == "test123"
+        # Verify that no initial review is auto-created
+        mock_mongo.db.reviews.insert_one.assert_not_called()
 
 
 def test_add_space_api_with_ratings_not_authenticated(client, mock_mongo):
@@ -241,8 +236,8 @@ def test_add_space_api_with_ratings_not_authenticated(client, mock_mongo):
         data = response.get_json()
         assert data["building"] == "Bobst Library"
 
-        # Verify review WAS created (user is authenticated)
-        mock_mongo.db.reviews.insert_one.assert_called_once()
+        # Verify no review is auto-created on space creation
+        mock_mongo.db.reviews.insert_one.assert_not_called()
 
 
 def test_update_space_api(client, mock_mongo):

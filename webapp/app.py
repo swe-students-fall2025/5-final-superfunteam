@@ -500,8 +500,6 @@ def add_space():
     try:
         result = mongo.db.study_spaces.insert_one(space)
         space["_id"] = str(result.inserted_id)
-
-
         return jsonify(space), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
