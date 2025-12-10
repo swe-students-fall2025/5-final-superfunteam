@@ -10,178 +10,179 @@
 
 <div class="spaces-list-container">
     {% if spaces %}
-        <div class="spaces-grid">
-            {% for space in spaces %}
-            <div class="space-card-map">
-                <div class="space-header-map">
-                    <h3>{{ space.building }}</h3>
-                </div>
-                <div class="space-details-map">
-                    <p class="sublocation-detail">{{ space.sublocation }}</p>
-                    <a href="https://www.google.com/maps/search/?api=1&query={{ space.map_query|urlencode }}" 
-                       target="_blank" 
-                       class="map-link-btn">
-                        <span>📍</span> View on Google Maps
-                    </a>
-                    {% if is_admin %}
-                    <button class="delete-btn" onclick="deleteSpace('{{ space._id }}', '{{ space.building }} - {{ space.sublocation }}')" title="Delete study space">
-                        Delete
-                    </button>
-                    {% endif %}
-                </div>
+    <div class="spaces-grid">
+        {% for space in spaces %}
+        <div class="space-card-map">
+            <div class="space-header-map">
+                <h3>{{ space.building }}</h3>
             </div>
-            {% endfor %}
+            <div class="space-details-map">
+                <p class="sublocation-detail">{{ space.sublocation }}</p>
+                <a href="https://www.google.com/maps/search/?api=1&query={{ space.map_query|urlencode }}"
+                    target="_blank" class="map-link-btn">
+                    <span>📍</span> View on Google Maps
+                </a>
+                {% if is_admin %}
+                <button class="delete-btn"
+                    onclick="deleteSpace('{{ space._id }}', '{{ space.building }} - {{ space.sublocation }}')"
+                    title="Delete study space">
+                    Delete
+                </button>
+                {% endif %}
+            </div>
         </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <div class="no-spaces-message">
-            <p>No study spaces found.</p>
-            <a href="{{ url_for('add_space_page') }}" class="btn btn-primary">Add a Study Space</a>
-        </div>
+    <div class="no-spaces-message">
+        <p>No study spaces found.</p>
+        <a href="{{ url_for('request_space_page') }}" class="btn btn-primary">Request a Study Space</a>
+    </div>
     {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-.spaces-list-container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-}
+    .spaces-list-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
 
-.spaces-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-}
-
-.space-card-map {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.space-card-map:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.space-header-map {
-    margin-bottom: 1rem;
-}
-
-.space-header-map h3 {
-    margin: 0;
-    color: #57068C;
-    font-size: 1.3rem;
-    font-weight: 600;
-}
-
-.space-details-map {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.sublocation-detail {
-    color: #666;
-    font-size: 1rem;
-    margin: 0;
-    line-height: 1.5;
-}
-
-.map-link-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #57068C;
-    text-decoration: none;
-    font-size: 0.95rem;
-    font-weight: 500;
-    padding: 0.75rem 1rem;
-    border: 2px solid #57068C;
-    border-radius: 6px;
-    transition: all 0.3s;
-    width: fit-content;
-}
-
-.map-link-btn:hover {
-    background-color: #57068C;
-    color: white;
-    transform: translateX(2px);
-}
-
-.map-link-btn span {
-    font-size: 1.1rem;
-}
-
-.no-spaces-message {
-    text-align: center;
-    padding: 3rem 1rem;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.no-spaces-message p {
-    font-size: 1.1rem;
-    color: #666;
-    margin-bottom: 1.5rem;
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.3s;
-}
-
-.btn-primary {
-    background: #57068C;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #2d0449;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(87, 6, 140, 0.3);
-}
-
-@media (max-width: 768px) {
     .spaces-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .space-card-map {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .space-card-map:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .space-header-map {
+        margin-bottom: 1rem;
+    }
+
+    .space-header-map h3 {
+        margin: 0;
+        color: #57068C;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .space-details-map {
+        display: flex;
+        flex-direction: column;
         gap: 1rem;
     }
-    
-    .space-card-map {
-        padding: 1.25rem;
+
+    .sublocation-detail {
+        color: #666;
+        font-size: 1rem;
+        margin: 0;
+        line-height: 1.5;
     }
-}
 
-.delete-btn {
-    padding: 0.75rem 1rem;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.3s;
-    margin-top: 0.5rem;
-    width: 100%;
-}
+    .map-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #57068C;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        border: 2px solid #57068C;
+        border-radius: 6px;
+        transition: all 0.3s;
+        width: fit-content;
+    }
 
-.delete-btn:hover {
-    background: #c82333;
-}
+    .map-link-btn:hover {
+        background-color: #57068C;
+        color: white;
+        transform: translateX(2px);
+    }
+
+    .map-link-btn span {
+        font-size: 1.1rem;
+    }
+
+    .no-spaces-message {
+        text-align: center;
+        padding: 3rem 1rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .no-spaces-message p {
+        font-size: 1.1rem;
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: #57068C;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2d0449;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(87, 6, 140, 0.3);
+    }
+
+    @media (max-width: 768px) {
+        .spaces-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .space-card-map {
+            padding: 1.25rem;
+        }
+    }
+
+    .delete-btn {
+        padding: 0.75rem 1rem;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+
+    .delete-btn:hover {
+        background: #c82333;
+    }
 </style>
 {% endblock %}
 
@@ -215,4 +216,3 @@
     }
 </script>
 {% endblock %}
-
