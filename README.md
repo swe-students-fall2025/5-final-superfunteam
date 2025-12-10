@@ -5,6 +5,12 @@
 
 A real-time, community-driven monitoring system that reports on the status and quality of study spaces at various NYU locations. Students can submit reviews with ratings for silence, crowdedness, and overall quality, helping others find the best study spaces before making trips across campus.
 
+## 🌐 Live Application
+
+**URL:** http://159.65.43.42
+
+The application is deployed on Digital Ocean with automated CI/CD via GitHub Actions.
+
 ## Team Members
 
 - [Zeba Shafi](https://github.com/Zeba-Shafi)
