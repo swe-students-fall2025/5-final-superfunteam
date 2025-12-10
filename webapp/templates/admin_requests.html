@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}Study Space Requests{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>Study Space Requests</h2>
+        <p>Review and manage study space requests from users</p>
+    </div>
+
+    <div class="filter-tabs">
+        <button class="tab-btn active" data-status="pending">Pending</button>
+        <button class="tab-btn" data-status="approved">Approved</button>
+        <button class="tab-btn" data-status="rejected">Rejected</button>
+        <button class="tab-btn" data-status="all">All</button>
+    </div>
+
+    <div id="requestsContainer" class="requests-container">
+        <div class="loading-message">Loading requests...</div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeRejectModal()">&times;</span>
+        <h2>Reject Request</h2>
+        <p id="rejectRequestInfo"></p>
+        <p>Are you sure you want to reject this request?</p>
+        <form id="rejectForm">
+            <input type="hidden" id="rejectRequestId">
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-danger">Reject Request</button>
+                <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .admin-header {
+        padding: 2rem 1.5rem 1rem 1.5rem;
+    }
+
+    .admin-header h2 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+        font-size: 1.8rem;
+    }
+
+    .admin-header p {
+        margin: 0;
+        color: #666;
+        font-size: 1rem;
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0 1.5rem;
+        border-bottom: 2px solid #e0e0e0;
+        margin-bottom: 0;
+    }
+
+    .tab-btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background: #f5f5f5;
+        color: #333;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 6px 6px 0 0;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+    }
+
+    .tab-btn:hover {
+        background: #e8e8e8;
+        color: #57068C;
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: #57068C;
+        border-bottom-color: #57068C;
+        border-bottom-width: 3px;
+    }
+
+    .requests-container {
+        padding: 1.5rem;
+        min-height: 200px;
+    }
+
+    .request-card {
+        background: #f8f9fa;
+        border-left: 4px solid #57068C;
+        border-radius: 6px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .request-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .request-card.rejected {
+        border-left-color: #dc3545;
+        opacity: 0.8;
+    }
+
+    .request-card.approved {
+        border-left-color: #28a745;
+        opacity: 0.8;
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .request-info h3 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+        font-size: 1.2rem;
+    }
+
+    .request-info p {
+        margin: 0.25rem 0;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .request-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .request-status.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .request-status.approved {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .request-status.rejected {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .request-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .btn {
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .loading-message,
+    .no-requests {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover {
+        color: #000;
+    }
+
+    .modal-content h2 {
+        margin-top: 0;
+        color: #333;
+    }
+
+    .modal-content label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentStatus = 'pending';
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentStatus = this.dataset.status;
+            loadRequests(currentStatus);
+        });
+    });
+
+    // Load requests
+    async function loadRequests(status) {
+        const container = document.getElementById('requestsContainer');
+        container.innerHTML = '<div class="loading-message">Loading requests...</div>';
+
+        try {
+            const response = await fetch(`/api/requests?status=${status}`, {
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load requests');
+            }
+
+            const requests = await response.json();
+            displayRequests(requests);
+        } catch (error) {
+            container.innerHTML = `<div class="no-requests">Error loading requests: ${error.message}</div>`;
+        }
+    }
+
+    // Display requests
+    function displayRequests(requests) {
+        const container = document.getElementById('requestsContainer');
+
+        if (requests.length === 0) {
+            container.innerHTML = '<div class="no-requests">No requests found.</div>';
+            return;
+        }
+
+        container.innerHTML = requests.map(request => {
+            const statusClass = request.status;
+            const statusBadge = `<span class="request-status ${statusClass}">${request.status}</span>`;
+            const requesterName = request.requester_display_name || request.requester_netid || request.requested_by;
+            const requestedDate = new Date(request.requested_at).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+
+            let actionsHtml = '';
+            if (request.status === 'pending') {
+                actionsHtml = `
+                    <div class="request-actions">
+                        <button class="btn btn-success" onclick="approveRequest('${request._id}')">Approve</button>
+                        <button class="btn btn-danger" onclick="openRejectModal('${request._id}', '${request.building}', '${request.sublocation}')">Reject</button>
+                    </div>
+                `;
+            } else {
+                const processedDate = request.processed_at ? new Date(request.processed_at).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZoneName: 'short'
+                }) : '';
+                const processedInfo = request.processed_at ? `<p><strong>Processed:</strong> ${processedDate}</p>` : '';
+                actionsHtml = `<div class="request-info">${processedInfo}</div>`;
+            }
+
+            return `
+                <div class="request-card ${statusClass}">
+                    <div class="request-header">
+                        <div class="request-info">
+                            <h3>${request.building}</h3>
+                            <p><strong>Location:</strong> ${request.sublocation}</p>
+                            <p><strong>Requested by:</strong> ${requesterName}</p>
+                            <p><strong>Requested:</strong> ${requestedDate}</p>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    ${actionsHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Approve request
+    async function approveRequest(requestId) {
+        if (!confirm('Are you sure you want to approve this request? The study space will be added to the system.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/requests/${requestId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Request approved! Study space has been added.');
+                loadRequests(currentStatus);
+            } else {
+                alert('Error: ' + (data.error || 'Failed to approve request'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Reject modal
+    function openRejectModal(requestId, building, sublocation) {
+        document.getElementById('rejectRequestId').value = requestId;
+        document.getElementById('rejectRequestInfo').textContent = `Reject request for: ${building} - ${sublocation}`;
+        document.getElementById('rejectModal').style.display = 'block';
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').style.display = 'none';
+        document.getElementById('rejectForm').reset();
+    }
+
+    // Handle reject form submission
+    document.getElementById('rejectForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const requestId = document.getElementById('rejectRequestId').value;
+
+        try {
+            const response = await fetch(`/api/requests/${requestId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({})
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Request rejected.');
+                closeRejectModal();
+                loadRequests(currentStatus);
+            } else {
+                alert('Error: ' + (data.error || 'Failed to reject request'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('rejectModal');
+        if (event.target == modal) {
+            closeRejectModal();
+        }
+    }
+
+    // Load initial requests
+    loadRequests('pending');
+</script>
+{% endblock %}

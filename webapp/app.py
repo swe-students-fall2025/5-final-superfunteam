@@ -114,12 +114,14 @@ def get_display_name_for_email(email):
 
 def admin_required(f):
     """Decorator to require admin privileges for a route"""
+
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Admin access required"}), 403
         return f(*args, **kwargs)
+
     return decorated_function
 
 
@@ -303,7 +305,7 @@ def logout():
 def index():
     """Home page showing all study spaces with their average ratings"""
     spaces = list(mongo.db.study_spaces.find())
-    
+
     # Check if current user is admin
     is_admin = False
     if current_user.is_authenticated:
@@ -380,10 +382,10 @@ def add_space_page():
         user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
     except (InvalidId, TypeError):
         user = mongo.db.users.find_one({"email": current_user.email})
-    
+
     if not user or not user.get("is_admin", False):
         return redirect(url_for("index"))
-    
+
     return render_template("add_space.html")
 
 
@@ -391,7 +393,7 @@ def add_space_page():
 def map_page():
     """Page showing study spaces on Google Maps"""
     spaces = list(mongo.db.study_spaces.find())
-    
+
     # Check if current user is admin
     is_admin = False
     if current_user.is_authenticated:
@@ -657,6 +659,187 @@ def get_reviews():
                 review["reported_by"] = display_name
 
     return jsonify(reviews)
+
+
+@app.route("/request-space")
+@login_required
+def request_space_page():
+    """Page for users to request a new study space"""
+    return render_template("request_space.html")
+
+
+@app.route("/admin/requests")
+@login_required
+def admin_requests_page():
+    """Admin portal page to view and manage study space requests"""
+    # Check if user is admin
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+    except (InvalidId, TypeError):
+        user = mongo.db.users.find_one({"email": current_user.email})
+
+    if not user or not user.get("is_admin", False):
+        return redirect(url_for("index"))
+
+    return render_template("admin_requests.html")
+
+
+@app.route("/api/requests", methods=["POST"])
+@login_required
+def submit_space_request():
+    """API endpoint for users to submit study space requests"""
+    data = request.get_json()
+
+    if not data or "building" not in data or "sublocation" not in data:
+        return (
+            jsonify({"error": "Missing required fields: building and sublocation"}),
+            400,
+        )
+
+    request_data = {
+        "building": data.get("building").strip(),
+        "sublocation": data.get("sublocation").strip(),
+        "status": "pending",
+        "requested_by": current_user.email,
+        "requester_netid": current_user.netid,
+        "requested_at": datetime.utcnow(),
+    }
+
+    try:
+        result = mongo.db.study_space_requests.insert_one(request_data)
+        request_data["_id"] = str(result.inserted_id)
+        return (
+            jsonify(
+                {
+                    "message": "Study space request submitted successfully",
+                    "request": request_data,
+                }
+            ),
+            201,
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/requests", methods=["GET"])
+@admin_required
+def get_space_requests():
+    """API endpoint to get all study space requests (admin only)"""
+    status = request.args.get("status", "pending")  # Default to pending
+
+    query = {"status": status} if status != "all" else {}
+
+    try:
+        requests = list(
+            mongo.db.study_space_requests.find(query).sort("requested_at", -1)
+        )
+
+        for req in requests:
+            req["_id"] = str(req["_id"])
+            # Get display name for requester
+            display_name = get_display_name_for_email(req.get("requested_by"))
+            if display_name:
+                req["requester_display_name"] = display_name
+
+        return jsonify(requests)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/requests/<request_id>/approve", methods=["POST"])
+@admin_required
+def approve_space_request(request_id):
+    """API endpoint to approve a study space request (admin only)"""
+    try:
+        query = {"_id": ObjectId(request_id)}
+    except (InvalidId, TypeError):
+        return jsonify({"error": "Invalid request ID"}), 400
+
+    # Get the request
+    space_request = mongo.db.study_space_requests.find_one(query)
+    if not space_request:
+        return jsonify({"error": "Request not found"}), 404
+
+    if space_request.get("status") != "pending":
+        return (
+            jsonify(
+                {"error": f"Request has already been {space_request.get('status')}"}
+            ),
+            400,
+        )
+
+    # Create the study space
+    space = {
+        "building": space_request["building"],
+        "sublocation": space_request["sublocation"],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+
+    try:
+        # Insert the study space
+        result = mongo.db.study_spaces.insert_one(space)
+        space_id = str(result.inserted_id)
+
+        # Update the request status
+        mongo.db.study_space_requests.update_one(
+            query,
+            {
+                "$set": {
+                    "status": "approved",
+                    "processed_at": datetime.utcnow(),
+                    "processed_by": current_user.email,
+                }
+            },
+        )
+
+        return (
+            jsonify(
+                {
+                    "message": "Request approved and study space created",
+                    "space_id": space_id,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/requests/<request_id>/reject", methods=["POST"])
+@admin_required
+def reject_space_request(request_id):
+    """API endpoint to reject a study space request (admin only)"""
+    try:
+        query = {"_id": ObjectId(request_id)}
+    except (InvalidId, TypeError):
+        return jsonify({"error": "Invalid request ID"}), 400
+
+    # Get the request
+    space_request = mongo.db.study_space_requests.find_one(query)
+    if not space_request:
+        return jsonify({"error": "Request not found"}), 404
+
+    if space_request.get("status") != "pending":
+        return (
+            jsonify(
+                {"error": f"Request has already been {space_request.get('status')}"}
+            ),
+            400,
+        )
+
+    # Update the request status
+    update_data = {
+        "status": "rejected",
+        "processed_at": datetime.utcnow(),
+        "processed_by": current_user.email,
+    }
+
+    try:
+        mongo.db.study_space_requests.update_one(query, {"$set": update_data})
+        return jsonify({"message": "Request rejected"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/health")
