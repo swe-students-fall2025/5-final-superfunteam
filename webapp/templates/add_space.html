@@ -14,49 +14,17 @@
             <label for="building">Building *</label>
             <input type="text" id="building" name="building" required placeholder="e.g., Bobst Library">
         </div>
-        
+
         <div class="form-group">
             <label for="sublocation">Sub-Location *</label>
             <input type="text" id="sublocation" name="sublocation" required placeholder="e.g., 2nd Floor Study Area">
         </div>
-        
-        <div class="form-group">
-            <label for="silence">Silence Level (1-5, 5 = very quiet):</label>
-            <div class="star-rating">
-                <input type="radio" id="silence5" name="silence" value="5">
-                <label for="silence5">★</label>
-                <input type="radio" id="silence4" name="silence" value="4">
-                <label for="silence4">★</label>
-                <input type="radio" id="silence3" name="silence" value="3">
-                <label for="silence3">★</label>
-                <input type="radio" id="silence2" name="silence" value="2">
-                <label for="silence2">★</label>
-                <input type="radio" id="silence1" name="silence" value="1">
-                <label for="silence1">★</label>
-            </div>
-        </div>
-        
-        <div class="form-group">
-            <label for="crowdedness">Crowdedness (1-5, 5 = very crowded):</label>
-            <div class="star-rating">
-                <input type="radio" id="crowdedness5" name="crowdedness" value="5">
-                <label for="crowdedness5">★</label>
-                <input type="radio" id="crowdedness4" name="crowdedness" value="4">
-                <label for="crowdedness4">★</label>
-                <input type="radio" id="crowdedness3" name="crowdedness" value="3">
-                <label for="crowdedness3">★</label>
-                <input type="radio" id="crowdedness2" name="crowdedness" value="2">
-                <label for="crowdedness2">★</label>
-                <input type="radio" id="crowdedness1" name="crowdedness" value="1">
-                <label for="crowdedness1">★</label>
-            </div>
-        </div>
-        
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Add Study Space</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
         </div>
-        
+
         <div id="formMessage" class="form-message"></div>
     </form>
 </div>
@@ -64,161 +32,156 @@
 
 {% block extra_css %}
 <style>
-.form-container {
-    max-width: 600px;
-    margin: 2rem auto;
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+    .form-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
 
-.form-group {
-    margin-bottom: 1.5rem;
-}
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
 
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #333;
-}
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
 
-.form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
-}
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
 
-.form-group input:focus {
-    outline: none;
-    border-color: #57068C;
-}
+    .form-group input:focus {
+        outline: none;
+        border-color: #57068C;
+    }
 
-.form-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-}
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
 
-.btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.3s;
-}
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
 
-.btn-primary {
-    background: #57068C;
-    color: white;
-}
+    .btn-primary {
+        background: #57068C;
+        color: white;
+    }
 
-.btn-primary:hover {
-    background: #57068C;
-}
+    .btn-primary:hover {
+        background: #57068C;
+    }
 
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
 
-.btn-secondary:hover {
-    background: #5a6268;
-}
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
 
-.form-message {
-    margin-top: 1rem;
-    padding: 1rem;
-    border-radius: 4px;
-    display: none;
-}
+    .form-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        display: none;
+    }
 
-.form-message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-    display: block;
-}
+    .form-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+    }
 
-.form-message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    display: block;
-}
+    .form-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
 
-.form-message.info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-    display: block;
-}
+    .form-message.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+        display: block;
+    }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.getElementById('addSpaceForm').addEventListener('submit', async function(e) {
+    document.getElementById('addSpaceForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-        
+
         const formData = {
             building: document.getElementById('building').value.trim(),
             sublocation: document.getElementById('sublocation').value.trim()
         };
-        
-        // Add optional silence and crowdedness ratings if selected
-        const silenceSelected = document.querySelector('input[name="silence"]:checked');
-        const crowdednessSelected = document.querySelector('input[name="crowdedness"]:checked');
-        
-        if (silenceSelected) {
-            formData.silence = parseInt(silenceSelected.value);
-        }
-        if (crowdednessSelected) {
-            formData.crowdedness = parseInt(crowdednessSelected.value);
-        }
-        
+
         // Validate required fields
         if (!formData.building || !formData.sublocation) {
             showMessage('Please fill in all required fields (Building and Sub-Location)', 'error');
             return;
         }
-        
+
         const messageDiv = document.getElementById('formMessage');
         messageDiv.textContent = 'Adding study space...';
         messageDiv.className = 'form-message info';
-        
+
         try {
             const response = await fetch('/api/spaces', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify(formData)
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 showMessage('Study space added successfully! Redirecting...', 'success');
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 1500);
             } else {
-                showMessage('Error: ' + (data.error || 'Failed to add study space'), 'error');
+                const errorMsg = data.error || 'Failed to add study space';
+                if (response.status === 403) {
+                    showMessage('Error: Admin access required. You do not have permission to add study spaces.', 'error');
+                } else {
+                    showMessage('Error: ' + errorMsg, 'error');
+                }
             }
         } catch (error) {
             showMessage('Error: ' + error.message, 'error');
         }
     });
-    
+
     function showMessage(message, type) {
         const messageDiv = document.getElementById('formMessage');
         messageDiv.textContent = message;

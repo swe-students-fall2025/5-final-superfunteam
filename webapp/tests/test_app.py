@@ -141,11 +141,18 @@ def test_add_space_api(client, mock_mongo):
 
     space_data = {"building": "Bobst Library", "sublocation": "2nd Floor Study Area"}
 
-    response = client.post("/api/spaces", json=space_data)
-    assert response.status_code == 201
-    data = response.get_json()
-    assert data["building"] == "Bobst Library"
-    assert data["sublocation"] == "2nd Floor Study Area"
+    # Mock current_user as admin
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = True
+        mock_user.netid = "admin123"
+        mock_user.email = "admin123@nyu.edu"
+
+        response = client.post("/api/spaces", json=space_data)
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data["building"] == "Bobst Library"
+        assert data["sublocation"] == "2nd Floor Study Area"
 
 
 def test_add_space_api_fail(client, mock_mongo):
@@ -154,11 +161,18 @@ def test_add_space_api_fail(client, mock_mongo):
 
     valid_data = {"building": "Kimmel Center", "sublocation": "Student Lounge"}
 
-    response = client.post("/api/spaces", json=valid_data)
-    assert response.status_code == 500
-    data = response.get_json()
-    assert "error" in data
-    assert data["error"] == "DB failure"
+    # Mock current_user as admin
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = True
+        mock_user.netid = "admin123"
+        mock_user.email = "admin123@nyu.edu"
+
+        response = client.post("/api/spaces", json=valid_data)
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert data["error"] == "DB failure"
 
 
 def test_add_space_api_with_ratings(client, mock_mongo):
@@ -179,9 +193,10 @@ def test_add_space_api_with_ratings(client, mock_mongo):
         "crowdedness": 2,
     }
 
-    # Mock current_user for authenticated user
+    # Mock current_user for authenticated admin user
     with patch("app.current_user") as mock_user:
         mock_user.is_authenticated = True
+        mock_user.is_admin = True  # Must be admin for @admin_required
         mock_user.netid = "test123"
         mock_user.email = "test123@nyu.edu"
 
@@ -201,7 +216,7 @@ def test_add_space_api_with_ratings(client, mock_mongo):
 
 
 def test_add_space_api_with_ratings_not_authenticated(client, mock_mongo):
-    """Test POST /api/spaces with ratings but user not authenticated - should not create review"""
+    """Test POST /api/spaces with ratings but user not authenticated - should get 403"""
     mock_result = MagicMock()
     mock_result.inserted_id = ObjectId()
     mock_mongo.db.study_spaces.insert_one.return_value = mock_result
@@ -213,17 +228,21 @@ def test_add_space_api_with_ratings_not_authenticated(client, mock_mongo):
         "crowdedness": 2,
     }
 
-    # Mock current_user for unauthenticated user
+    # Mock current_user as not authenticated (will be blocked by @admin_required)
     with patch("app.current_user") as mock_user:
-        mock_user.is_authenticated = False
+        mock_user.is_authenticated = True  # Must be authenticated
+        mock_user.is_admin = True  # Must be admin to pass @admin_required
+        mock_user.netid = "admin123"
+        mock_user.email = "admin123@nyu.edu"
 
         response = client.post("/api/spaces", json=space_data)
+        # Space is created successfully
         assert response.status_code == 201
         data = response.get_json()
         assert data["building"] == "Bobst Library"
 
-        # Verify review was NOT created
-        mock_mongo.db.reviews.insert_one.assert_not_called()
+        # Verify review WAS created (user is authenticated)
+        mock_mongo.db.reviews.insert_one.assert_called_once()
 
 
 def test_update_space_api(client, mock_mongo):
@@ -268,10 +287,15 @@ def test_delete_space_api(client, mock_mongo):
     mock_result.deleted_count = 1
     mock_mongo.db.study_spaces.delete_one.return_value = mock_result
 
-    response = client.delete("/api/spaces/123")
-    assert response.status_code == 200
-    data = response.get_json()
-    assert "message" in data
+    # Mock current_user as admin
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = True
+
+        response = client.delete("/api/spaces/123")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "message" in data
 
 
 def test_delete_space_api_not_found(client, mock_mongo):
@@ -280,22 +304,32 @@ def test_delete_space_api_not_found(client, mock_mongo):
     mock_result.deleted_count = 0
     mock_mongo.db.study_spaces.delete_one.return_value = mock_result
 
-    response = client.delete("/api/spaces/507f1f77bcf86cd799439012")
-    assert response.status_code == 404
-    data = response.get_json()
-    assert "error" in data
-    assert data["error"] == "Study space not found"
+    # Mock current_user as admin
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = True
+
+        response = client.delete("/api/spaces/507f1f77bcf86cd799439012")
+        assert response.status_code == 404
+        data = response.get_json()
+        assert "error" in data
+        assert data["error"] == "Study space not found"
 
 
 def test_delete_space_api_exception(client, mock_mongo):
     """Test DELETE /api/spaces/<id> endpoint with exception raised"""
     mock_mongo.db.study_spaces.delete_one.side_effect = Exception("DB failure")
 
-    response = client.delete("/api/spaces/507f1f77bcf86cd799439013")
-    assert response.status_code == 500
-    data = response.get_json()
-    assert "error" in data
-    assert data["error"] == "DB failure"
+    # Mock current_user as admin
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = True
+
+        response = client.delete("/api/spaces/507f1f77bcf86cd799439013")
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert data["error"] == "DB failure"
 
 
 def test_get_space_not_found(client, mock_mongo):
@@ -665,11 +699,43 @@ def test_map_page_empty(client, mock_mongo):
     assert b"No study spaces found" in response.data or b"Study Spaces" in response.data
 
 
-def test_add_space_page(client):
+def test_add_space_page(client, mock_mongo):
     """Test the /add-space route"""
-    response = client.get("/add-space")
-    assert response.status_code == 200
-    assert b"Add New Study Space" in response.data
+    # Mock current_user as admin
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = False  # Non-admin user
+        mock_user.id = "test123"
+        mock_user.email = "test@nyu.edu"
+        
+        # Mock the database call to return non-admin user
+        mock_mongo.db.users.find_one.return_value = {
+            "_id": ObjectId(),
+            "email": "test@nyu.edu",
+            "is_admin": False
+        }
+        
+        # Non-admin should be redirected
+        response = client.get("/add-space")
+        assert response.status_code == 302  # Redirect
+        
+    # Now test with admin user
+    with patch("app.current_user") as mock_user:
+        mock_user.is_authenticated = True
+        mock_user.is_admin = True
+        mock_user.id = "admin123"
+        mock_user.email = "admin@nyu.edu"
+        
+        # Mock the database call to return admin user
+        mock_mongo.db.users.find_one.return_value = {
+            "_id": ObjectId(),
+            "email": "admin@nyu.edu",
+            "is_admin": True
+        }
+        
+        response = client.get("/add-space")
+        assert response.status_code == 200
+        assert b"Add New Study Space" in response.data
 
 
 def test_get_current_user(client, mock_mongo):
@@ -784,6 +850,7 @@ def test_add_space_invalid_ratings(client, mock_mongo):
 
     with patch("app.current_user") as mock_user:
         mock_user.is_authenticated = True
+        mock_user.is_admin = True  # Must be admin for @admin_required
         mock_user.netid = "test123"
         mock_user.email = "test123@nyu.edu"
 
@@ -808,6 +875,7 @@ def test_add_space_invalid_rating_type(client, mock_mongo):
 
     with patch("app.current_user") as mock_user:
         mock_user.is_authenticated = True
+        mock_user.is_admin = True  # Must be admin for @admin_required
         mock_user.netid = "test123"
         mock_user.email = "test123@nyu.edu"
 

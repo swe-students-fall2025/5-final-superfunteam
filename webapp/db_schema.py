@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
 def get_db_connection():
     """Get MongoDB connection"""
     mongo_uri = os.getenv("MONGO_URI")
@@ -17,10 +18,10 @@ def get_db_connection():
         mongodb_host = os.getenv("MONGODB_HOST", "localhost")
         mongodb_port = os.getenv("MONGODB_PORT", "27017")
         mongo_uri = f"mongodb://{mongodb_host}:{mongodb_port}/"
-    
+
     # Get database name from environment or use default
     database_name = os.getenv("MONGODB_DATABASE", "proj4")
-    
+
     try:
         client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
         # Test the connection
@@ -30,12 +31,13 @@ def get_db_connection():
         print(f"Error connecting to MongoDB: {e}")
         raise
 
+
 def create_collections_and_indexes():
     """
     Create collections and indexes for the NYU Study Space Status application
     """
     db = get_db_connection()
-    
+
     # ==================== STUDY_SPACES COLLECTION ====================
     # Schema for study_spaces collection
     # {
@@ -45,22 +47,22 @@ def create_collections_and_indexes():
     #     "created_at": datetime,   # When space was added to system
     #     "updated_at": datetime    # Last time space info was updated
     # }
-    
+
     if "study_spaces" not in db.list_collection_names():
         db.create_collection("study_spaces")
         print("Created 'study_spaces' collection")
-    
+
     # Create indexes for study_spaces collection
     study_spaces_indexes = [
         ("building", ASCENDING),
         ("sublocation", ASCENDING),
-        ("created_at", DESCENDING)
+        ("created_at", DESCENDING),
     ]
-    
+
     for field, order in study_spaces_indexes:
         db.study_spaces.create_index([(field, order)])
         print(f"✓ Created index on study_spaces.{field}")
-    
+
     # ==================== REVIEWS COLLECTION ====================
     # Schema for reviews collection
     # {
@@ -74,29 +76,56 @@ def create_collections_and_indexes():
     #     "reporter_email": str,          # User's email
     #     "timestamp": datetime           # When review was submitted
     # }
-    
+
     if "reviews" not in db.list_collection_names():
         db.create_collection("reviews")
         print("✓ Created 'reviews' collection")
-    
+
     # Create indexes for reviews collection
     # Most important: space_id and timestamp for fetching recent reviews
-    db.reviews.create_index([
-        ("space_id", ASCENDING),
-        ("timestamp", DESCENDING)
-    ])
+    db.reviews.create_index([("space_id", ASCENDING), ("timestamp", DESCENDING)])
     print("✓ Created compound index on reviews.space_id + timestamp")
-    
+
     # Additional indexes
     db.reviews.create_index([("timestamp", DESCENDING)])
     print("✓ Created index on reviews.timestamp")
-    
+
     db.reviews.create_index([("rating", ASCENDING)])
     print("✓ Created index on reviews.rating")
-    
+
+    # ==================== STUDY_SPACE_REQUESTS COLLECTION ====================
+    # Schema for study_space_requests collection
+    # {
+    #     "_id": ObjectId,
+    #     "building": str,              # Requested building name
+    #     "sublocation": str,            # Requested sublocation
+    #     "status": str,                # "pending", "approved", "rejected"
+    #     "requested_by": str,          # User's email
+    #     "requester_netid": str,       # User's netid
+    #     "requested_at": datetime,     # When request was submitted
+    #     "processed_at": datetime,     # When request was approved/rejected
+    #     "processed_by": str,          # Admin email who processed it
+    #     "rejection_reason": str       # Optional reason for rejection
+    # }
+
+    if "study_space_requests" not in db.list_collection_names():
+        db.create_collection("study_space_requests")
+        print("Created 'study_space_requests' collection")
+
+    # Create indexes for study_space_requests collection
+    db.study_space_requests.create_index([("status", ASCENDING)])
+    print("Created index on study_space_requests.status")
+
+    db.study_space_requests.create_index([("requested_at", DESCENDING)])
+    print("Created index on study_space_requests.requested_at")
+
+    db.study_space_requests.create_index([("requested_by", ASCENDING)])
+    print("Created index on study_space_requests.requested_by")
+
     print("\nDatabase schema setup complete!")
     print(f"Database: {db.name}")
     print(f"Collections: {', '.join(db.list_collection_names())}")
+
 
 if __name__ == "__main__":
     create_collections_and_indexes()

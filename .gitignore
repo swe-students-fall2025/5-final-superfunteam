@@ -147,3 +147,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# admin script
+webapp/set_admin.py

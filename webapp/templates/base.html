@@ -17,7 +17,13 @@
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
                     <li><a href="{{ url_for('map_page') }}">Map</a></li>
+                    {% if current_user.is_authenticated and not current_user.is_admin %}
+                    <li><a href="{{ url_for('request_space_page') }}">Request Space</a></li>
+                    {% endif %}
+                    {% if current_user.is_authenticated and current_user.is_admin %}
                     <li><a href="{{ url_for('add_space_page') }}">Add Study Space</a></li>
+                    <li><a href="{{ url_for('admin_requests_page') }}">Study Space Requests</a></li>
+                    {% endif %}
                     {% if current_user.is_authenticated %}
                     <li><a href="{{ url_for('profile_page') }}">Profile</a></li>
                     <li><a href="{{ url_for('logout') }}" class="logout-btn">Logout</a></li>
