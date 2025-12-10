@@ -24,6 +24,7 @@ services:
         build:
             context: ./webapp
             dockerfile: Dockerfile
+        image: ${DOCKER_USERNAME:-local}/nyu-study-spaces-webapp:latest
         container_name: nyu-study-spaces-webapp
         restart: unless-stopped
         ports:

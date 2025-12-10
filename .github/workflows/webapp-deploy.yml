@@ -7,6 +7,7 @@ on:
       - 'webapp/**'
       - 'docker-compose.yml'
       - '.github/workflows/webapp-deploy.yml'
+      - 'deploy.sh'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -33,34 +34,34 @@ jobs:
         file: ./webapp/Dockerfile
         push: true
         tags: |
-          ${{ secrets.DOCKER_USERNAME }}/nyu-printer-webapp:latest
-          ${{ secrets.DOCKER_USERNAME }}/nyu-printer-webapp:${{ github.sha }}
+          ${{ secrets.DOCKER_USERNAME }}/nyu-study-spaces-webapp:latest
+          ${{ secrets.DOCKER_USERNAME }}/nyu-study-spaces-webapp:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         
-    - name: Deploy to Digital Ocean App Platform
-      if: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      uses: digitalocean/app_action@v1.1.5
+    - name: Deploy to Digital Ocean Droplet
+      uses: appleboy/ssh-action@v1.0.0
       with:
-        app_name: nyu-printer-status
-        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-        images: '[
-          {
-            "name": "webapp",
-            "image": {
-              "registry_type": "DOCKER_HUB",
-              "repository": "${{ secrets.DOCKER_USERNAME }}/nyu-printer-webapp",
-              "tag": "${{ github.sha }}"
-            }
-          }
-        ]'
+        host: ${{ secrets.DROPLET_IP }}
+        username: ${{ secrets.DROPLET_USER }}
+        key: ${{ secrets.DROPLET_SSH_KEY }}
+        script: |
+          cd /opt/nyu-study-spaces
+          git pull origin main
+          docker-compose -f docker-compose.prod.yml pull
+          docker-compose -f docker-compose.prod.yml down
+          docker-compose -f docker-compose.prod.yml up -d
+          docker system prune -f
+          echo "✅ Deployment complete!"
+          docker-compose -f docker-compose.prod.yml ps
         
     - name: Deploy notification
       if: success()
       run: |
         echo "✅ Deployment successful!"
-        echo "Image: ${{ secrets.DOCKER_USERNAME }}/nyu-printer-webapp:${{ github.sha }}"
-        echo "Latest: ${{ secrets.DOCKER_USERNAME }}/nyu-printer-webapp:latest"
+        echo "Image: ${{ secrets.DOCKER_USERNAME }}/nyu-study-spaces-webapp:${{ github.sha }}"
+        echo "Latest: ${{ secrets.DOCKER_USERNAME }}/nyu-study-spaces-webapp:latest"
+        echo "Deployed to droplet: ${{ secrets.DROPLET_IP }}"
         
     - name: Deploy failure notification
       if: failure()

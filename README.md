@@ -233,7 +233,20 @@ The project uses GitHub Actions for continuous integration and deployment:
 ## Documentation
 
 - **Database Schema**: See [webapp/README.md](./webapp/README.md) for database setup and schema documentation
-- **Deployment Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions and CI/CD setup
+- **Deployment Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete Digital Ocean droplet deployment instructions
+- **Quick Start**: See [QUICKSTART.md](./QUICKSTART.md) for quick deployment reference
+
+## Deployment
+
+This application can be deployed to a Digital Ocean droplet with automated CI/CD via GitHub Actions.
+
+**Quick Setup:**
+1. Create a Digital Ocean droplet
+2. Run the setup script: `./setup-droplet.sh`
+3. Configure GitHub Secrets (Docker Hub credentials, droplet SSH key)
+4. Push to main branch - automatic deployment!
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
 
 ## License
 
