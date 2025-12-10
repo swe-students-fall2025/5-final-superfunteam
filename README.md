@@ -175,42 +175,6 @@ The project uses GitHub Actions for continuous integration and deployment:
   4. Push to Docker Hub
   5. Deploy to Digital Ocean
 
-## Project Structure
-
-```
-5-final-superfunteam/
-├── .github/
-│   └── workflows/
-│       ├── webapp-ci.yml      # CI/CD pipeline
-│       └── webapp-deploy.yml  # Deployment workflow
-├── webapp/                     # Flask web application
-│   ├── static/
-│   │   ├── css/
-│   │   │   └── style.css
-│   │   └── js/
-│   │       └── main.js
-│   ├── templates/
-│   │   ├── base.html
-│   │   └── index.html
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   └── test_app.py
-│   ├── .dockerignore
-│   ├── .env.example
-│   ├── app.py
-│   ├── Dockerfile
-│   ├── README.md
-│   └── requirements.txt
-├── .dockerignore
-├── .env.example
-├── .gitignore
-├── docker-compose.yml
-├── instructions.md
-├── LICENSE
-├── pyproject.toml
-└── README.md
-```
-
 ## Technologies Used
 
 - **Backend**: Python 3.11, Flask 3.0.0, PyMongo 4.6.0
@@ -221,19 +185,6 @@ The project uses GitHub Actions for continuous integration and deployment:
 - **Testing**: Pytest
 - **CI/CD**: GitHub Actions
 - **Deployment**: Digital Ocean
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## Documentation
-
-- **Database Schema**: See [webapp/README.md](./webapp/README.md) for database setup and schema documentation
-- **Deployment Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions and CI/CD setup
 
 ## License
 
