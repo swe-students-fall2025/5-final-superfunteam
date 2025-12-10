@@ -5,7 +5,7 @@
 {% block content %}
 <div class="header-section">
     <h2>Login</h2>
-    <p>Login with your NYU email to report study spaces status</p>
+    <p>Login with your NYU email to access all features</p>
 </div>
 
 <div class="form-container">
@@ -14,40 +14,41 @@
             <label for="email">NYU Email</label>
             <input type="email" id="email" name="email" required placeholder="netid@nyu.edu">
         </div>
-        
+
         <div class="form-group">
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required>
         </div>
-        
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Login</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
         </div>
-        
+
         <div id="formMessage" class="form-message"></div>
-        
+
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
-            <p style="color: #666; font-size: 0.9rem;">Don't have an account? <a href="#" onclick="showRegister()" style="color: #667eea;">Register here</a></p>
+            <p style="color: #666; font-size: 0.9rem;">Don't have an account? <a href="#" onclick="showRegister()"
+                    style="color: #667eea;">Register here</a></p>
         </div>
     </form>
-    
+
     <form id="registerForm" style="display: none;">
         <div class="form-group">
             <label for="reg_email">NYU Email</label>
             <input type="email" id="reg_email" name="email" required placeholder="netid@nyu.edu">
         </div>
-        
+
         <div class="form-group">
             <label for="reg_password">Password (min 6 characters)</label>
             <input type="password" id="reg_password" name="password" required minlength="6">
         </div>
-        
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Register</button>
             <a href="#" onclick="showLogin()" class="btn btn-secondary">Back to Login</a>
         </div>
-        
+
         <div id="registerMessage" class="form-message"></div>
     </form>
 </div>
@@ -55,103 +56,103 @@
 
 {% block extra_css %}
 <style>
-.form-container {
-    max-width: 600px;
-    margin: 2rem auto;
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+    .form-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
 
-.form-group {
-    margin-bottom: 1.5rem;
-}
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
 
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #333;
-}
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
 
-.form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
-}
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
 
-.form-group input:focus {
-    outline: none;
-    border-color: #667eea;
-}
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
 
-.form-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-}
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
 
-.btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.3s;
-}
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
 
-.btn-primary {
-    background: #57068C;
-    color: white;
-}
+    .btn-primary {
+        background: #57068C;
+        color: white;
+    }
 
-.btn-primary:hover {
-    background: #2d0449;
-}
+    .btn-primary:hover {
+        background: #2d0449;
+    }
 
-.btn-secondary {
-    background: #726779;
-    color: white;
-}
+    .btn-secondary {
+        background: #726779;
+        color: white;
+    }
 
-.btn-secondary:hover {
-    background: #5a6268;
-}
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
 
-.form-message {
-    margin-top: 1rem;
-    padding: 1rem;
-    border-radius: 4px;
-    display: none;
-}
+    .form-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        display: none;
+    }
 
-.form-message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-    display: block;
-}
+    .form-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+    }
 
-.form-message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    display: block;
-}
+    .form-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
 
-.form-message.info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-    display: block;
-}
+    .form-message.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+        display: block;
+    }
 </style>
 {% endblock %}
 
@@ -161,25 +162,25 @@
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'block';
     }
-    
+
     function showLogin() {
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('loginForm').style.display = 'block';
     }
-    
+
     // Login form
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-        
+
         const formData = {
             email: document.getElementById('email').value.trim().toLowerCase(),
             password: document.getElementById('password').value
         };
-        
+
         const messageDiv = document.getElementById('formMessage');
         messageDiv.textContent = 'Logging in...';
         messageDiv.className = 'form-message info';
-        
+
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
@@ -189,9 +190,9 @@
                 credentials: 'same-origin',
                 body: JSON.stringify(formData)
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 showMessage('Login successful! Redirecting...', 'success', messageDiv);
                 setTimeout(() => {
@@ -204,20 +205,20 @@
             showMessage('Error: ' + error.message, 'error', messageDiv);
         }
     });
-    
+
     // Register form
-    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    document.getElementById('registerForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-        
+
         const formData = {
             email: document.getElementById('reg_email').value.trim().toLowerCase(),
             password: document.getElementById('reg_password').value
         };
-        
+
         const messageDiv = document.getElementById('registerMessage');
         messageDiv.textContent = 'Registering...';
         messageDiv.className = 'form-message info';
-        
+
         try {
             const response = await fetch('/api/register', {
                 method: 'POST',
@@ -226,9 +227,9 @@
                 },
                 body: JSON.stringify(formData)
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 showMessage('Registration successful! Please login.', 'success', messageDiv);
                 setTimeout(() => {
@@ -241,7 +242,7 @@
             showMessage('Error: ' + error.message, 'error', messageDiv);
         }
     });
-    
+
     function showMessage(message, type, messageDiv) {
         messageDiv.textContent = message;
         messageDiv.className = 'form-message ' + type;
