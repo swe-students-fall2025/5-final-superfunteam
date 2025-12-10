@@ -470,3 +470,32 @@ footer p {
     min-height: 80px;
     resize: vertical;
 }
+
+/* Vote buttons */
+.vote-btn {
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.vote-btn:hover {
+    background-color: #f0f0f0 !important;
+    border-color: #57068C !important;
+}
+
+.vote-btn.upvote-btn.active {
+    background-color: #4CAF50 !important;
+    border-color: #4CAF50 !important;
+    color: white;
+}
+
+.vote-btn.downvote-btn.active {
+    background-color: #f44336 !important;
+    border-color: #f44336 !important;
+    color: white;
+}
+
+.vote-btn.active:hover {
+    opacity: 0.8;
+}

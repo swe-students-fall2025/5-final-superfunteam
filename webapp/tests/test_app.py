@@ -205,6 +205,11 @@ def test_add_space_api_with_ratings(client, mock_mongo):
         data = response.get_json()
         assert data["building"] == "Bobst Library"
         assert data["sublocation"] == "2nd Floor Study Area"
+        
+        # Verify that created_by email is included
+        call_args = mock_mongo.db.study_spaces.insert_one.call_args
+        inserted_space = call_args[0][0]
+        assert inserted_space["created_by"] == "test123@nyu.edu"
 
         # Verify that no initial review is auto-created
         mock_mongo.db.reviews.insert_one.assert_not_called()
@@ -587,9 +592,11 @@ def test_submit_review_invalid_rating_values(client, mock_mongo):
 
 def test_get_reviews_success(client, mock_mongo):
     """Test GET /api/reviews endpoint returns all reviews"""
+    review1_id = ObjectId()
+    review2_id = ObjectId()
     mock_reviews = [
         {
-            "_id": ObjectId(),
+            "_id": review1_id,
             "space_id": "123",
             "rating": 4,
             "silence": 5,
@@ -597,10 +604,12 @@ def test_get_reviews_success(client, mock_mongo):
             "review": "Great space!",
             "reported_by": "test123",
             "reporter_email": "test123@nyu.edu",
-            "timestamp": "2024-01-01T12:00:00",
+            "upvotes": 5,
+            "downvotes": 1,
+            "timestamp": datetime(2024, 1, 1, 12, 0, 0),
         },
         {
-            "_id": ObjectId(),
+            "_id": review2_id,
             "space_id": "456",
             "rating": 3,
             "silence": 2,
@@ -608,14 +617,16 @@ def test_get_reviews_success(client, mock_mongo):
             "review": "Too crowded",
             "reported_by": "user456",
             "reporter_email": "user456@nyu.edu",
-            "timestamp": "2024-01-01T11:00:00",
+            "upvotes": 2,
+            "downvotes": 0,
+            "timestamp": datetime(2024, 1, 1, 11, 0, 0),
         },
     ]
 
-    mock_cursor = MagicMock()
-    mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_reviews
-    mock_mongo.db.reviews.find.return_value = mock_cursor
+    # Mock find to return list directly (new implementation fetches all then sorts)
+    mock_mongo.db.reviews.find.return_value = mock_reviews
+    # Mock review_votes.find to return empty (no user votes)
+    mock_mongo.db.review_votes.find.return_value = []
     # Mock user lookup for display_name (returns None to use reported_by)
     mock_mongo.db.users.find_one.return_value = None
 
@@ -625,16 +636,20 @@ def test_get_reviews_success(client, mock_mongo):
     data = response.get_json()
     assert isinstance(data, list)
     assert len(data) == 2
+    # Reviews should be sorted by net votes (review1 has 4, review2 has 2)
     assert data[0]["space_id"] == "123"
+    assert data[0]["net_votes"] == 4
     assert data[1]["space_id"] == "456"
+    assert data[1]["net_votes"] == 2
 
 
 def test_get_reviews_filtered_by_space(client, mock_mongo):
     """Test GET /api/reviews with space_id filter"""
     space_id = "123"
+    review_id = ObjectId()
     mock_reviews = [
         {
-            "_id": ObjectId(),
+            "_id": review_id,
             "space_id": space_id,
             "rating": 4,
             "silence": 5,
@@ -642,14 +657,16 @@ def test_get_reviews_filtered_by_space(client, mock_mongo):
             "review": "Great!",
             "reported_by": "test123",
             "reporter_email": "test123@nyu.edu",
-            "timestamp": "2024-01-01T12:00:00",
+            "upvotes": 3,
+            "downvotes": 0,
+            "timestamp": datetime(2024, 1, 1, 12, 0, 0),
         }
     ]
 
-    mock_cursor = MagicMock()
-    mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_reviews
-    mock_mongo.db.reviews.find.return_value = mock_cursor
+    # Mock find to return list directly (new implementation fetches all then sorts)
+    mock_mongo.db.reviews.find.return_value = mock_reviews
+    # Mock review_votes.find to return empty (no user votes)
+    mock_mongo.db.review_votes.find.return_value = []
     # Mock user lookup for display_name (returns None to use reported_by)
     mock_mongo.db.users.find_one.return_value = None
 
@@ -660,6 +677,7 @@ def test_get_reviews_filtered_by_space(client, mock_mongo):
     assert isinstance(data, list)
     assert len(data) == 1
     assert data[0]["space_id"] == space_id
+    assert data[0]["net_votes"] == 3
 
 
 def test_map_page_route(client, mock_mongo):
@@ -894,6 +912,7 @@ def test_update_space_no_valid_fields(client, mock_mongo):
 def test_get_space_with_reviews(client, mock_mongo):
     """Test GET /api/spaces/<id> with reviews"""
     space_id = str(ObjectId())
+    review_id = ObjectId()
     mock_space = {
         "_id": ObjectId(space_id),
         "building": "Bobst Library",
@@ -903,21 +922,26 @@ def test_get_space_with_reviews(client, mock_mongo):
 
     mock_reviews = [
         {
-            "_id": ObjectId(),
+            "_id": review_id,
             "space_id": space_id,
             "rating": 4,
             "silence": 5,
             "crowdedness": 2,
             "review": "Great!",
             "reported_by": "test123",
+            "reporter_email": "test123@nyu.edu",
+            "upvotes": 2,
+            "downvotes": 0,
             "timestamp": datetime.utcnow(),
         }
     ]
 
-    mock_cursor = MagicMock()
-    mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_reviews
-    mock_mongo.db.reviews.find.return_value = mock_cursor
+    # Mock find to return list directly (new implementation fetches all then sorts)
+    mock_mongo.db.reviews.find.return_value = mock_reviews
+    # Mock review_votes.find to return empty (no user votes)
+    mock_mongo.db.review_votes.find.return_value = []
+    # Mock user lookup for display_name
+    mock_mongo.db.users.find_one.return_value = None
 
     response = client.get(f"/api/spaces/{space_id}")
     assert response.status_code == 200
@@ -925,6 +949,7 @@ def test_get_space_with_reviews(client, mock_mongo):
     assert data["building"] == "Bobst Library"
     assert "reviews" in data
     assert len(data["reviews"]) == 1
+    assert data["reviews"][0]["net_votes"] == 2
 
 
 def test_get_space_with_no_reviews(client, mock_mongo):

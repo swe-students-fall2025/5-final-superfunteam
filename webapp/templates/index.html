@@ -64,11 +64,32 @@
                             '...' if review.review|length > 80 else '' }}"</em></p>
                     {% endif %}
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #999;">
+                        style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #999; margin-bottom: 0.3rem;">
                         <span><strong>{{ review.reported_by }}</strong></span>
                         <span>{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
                         <span>{{ review.timestamp.strftime('%m/%d') if review.timestamp else '' }}</span>
                     </div>
+                    {% if current_user.is_authenticated %}
+                    <div class="vote-buttons" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem;">
+                        <button class="vote-btn upvote-btn {{ 'active' if review.user_vote == 'upvote' else '' }}" 
+                                onclick="voteReview('{{ review._id }}', 'upvote', this)"
+                                style="background: none; border: 1px solid #ccc; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                            ▲ <span class="upvote-count">{{ review.upvotes or 0 }}</span>
+                        </button>
+                        <button class="vote-btn downvote-btn {{ 'active' if review.user_vote == 'downvote' else '' }}" 
+                                onclick="voteReview('{{ review._id }}', 'downvote', this)"
+                                style="background: none; border: 1px solid #ccc; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                            ▼ <span class="downvote-count">{{ review.downvotes or 0 }}</span>
+                        </button>
+                        <span style="font-size: 0.7rem; color: #666; margin-left: 0.3rem;">
+                            Net: <strong>{{ review.net_votes or 0 }}</strong>
+                        </span>
+                    </div>
+                    {% else %}
+                    <div style="font-size: 0.7rem; color: #999; margin-top: 0.3rem;">
+                        ▲ {{ review.upvotes or 0 }} | ▼ {{ review.downvotes or 0 }} (Net: {{ review.net_votes or 0 }})
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
                 {% if space.review_count > 3 %}
@@ -303,6 +324,38 @@
             }
         } catch (error) {
             alert('Error deleting space: ' + error.message);
+        }
+    }
+
+    // Vote on review function
+    async function voteReview(reviewId, voteType, buttonElement) {
+        try {
+            const endpoint = voteType === 'upvote' 
+                ? `/api/reviews/${reviewId}/upvote`
+                : `/api/reviews/${reviewId}/downvote`;
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Refresh the page to update vote counts
+                refreshSpaces();
+            } else {
+                const data = await response.json();
+                if (response.status === 401) {
+                    alert('Please log in to vote on reviews.');
+                } else {
+                    alert('Error voting: ' + (data.error || 'Please try again.'));
+                }
+            }
+        } catch (error) {
+            alert('Error voting: ' + error.message);
         }
     }
 </script>

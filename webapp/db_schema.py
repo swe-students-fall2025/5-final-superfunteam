@@ -44,6 +44,7 @@ def create_collections_and_indexes():
     #     "_id": ObjectId,
     #     "building": str,          # e.g., "Bobst Library"
     #     "sublocation": str,       # e.g., "2nd Floor Study Area"
+    #     "created_by": str,        # Email of user who created the space
     #     "created_at": datetime,   # When space was added to system
     #     "updated_at": datetime    # Last time space info was updated
     # }
@@ -92,6 +93,32 @@ def create_collections_and_indexes():
 
     db.reviews.create_index([("rating", ASCENDING)])
     print("✓ Created index on reviews.rating")
+
+    # Add indexes for vote sorting
+    db.reviews.create_index([("upvotes", DESCENDING)])
+    print("✓ Created index on reviews.upvotes")
+    db.reviews.create_index([("downvotes", ASCENDING)])
+    print("✓ Created index on reviews.downvotes")
+
+    # ==================== REVIEW_VOTES COLLECTION ====================
+    # Schema for review_votes collection (tracks individual user votes)
+    # {
+    #     "_id": ObjectId,
+    #     "review_id": str,         # Reference to review _id
+    #     "user_email": str,        # Email of user who voted
+    #     "vote_type": str,         # "upvote" or "downvote"
+    #     "timestamp": datetime     # When vote was cast
+    # }
+
+    if "review_votes" not in db.list_collection_names():
+        db.create_collection("review_votes")
+        print("✓ Created 'review_votes' collection")
+
+    # Create indexes for review_votes collection
+    db.review_votes.create_index([("review_id", ASCENDING), ("user_email", ASCENDING)], unique=True)
+    print("✓ Created unique compound index on review_votes.review_id + user_email")
+    db.review_votes.create_index([("review_id", ASCENDING)])
+    print("✓ Created index on review_votes.review_id")
 
     # ==================== STUDY_SPACE_REQUESTS COLLECTION ====================
     # Schema for study_space_requests collection

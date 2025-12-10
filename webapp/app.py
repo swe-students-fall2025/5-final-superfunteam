@@ -316,31 +316,52 @@ def index():
         if user:
             is_admin = user.get("is_admin", False)
 
+    # Get user's email if logged in for vote status
+    user_email = None
+    if current_user.is_authenticated:
+        user_email = current_user.email
+
     # Get average ratings and recent reviews for each space
     for space in spaces:
-        reviews = list(
-            mongo.db.reviews.find({"space_id": str(space["_id"])})
-            .sort("timestamp", -1)
-            .limit(5)  # Get up to 5 most recent reviews
-        )
+        # Get all reviews for this space to calculate averages
+        all_reviews = list(mongo.db.reviews.find({"space_id": str(space["_id"])}))
+        space["review_count"] = len(all_reviews)
 
-        if reviews:
-            # Calculate averages
-            avg_rating = sum(r["rating"] for r in reviews) / len(reviews)
-            avg_silence = sum(r["silence"] for r in reviews) / len(reviews)
-            avg_crowdedness = sum(r["crowdedness"] for r in reviews) / len(reviews)
+        if all_reviews:
+            # Calculate averages from all reviews
+            avg_rating = sum(r.get("rating", 0) for r in all_reviews) / len(all_reviews)
+            avg_silence = sum(r.get("silence", 0) for r in all_reviews) / len(all_reviews)
+            avg_crowdedness = sum(r.get("crowdedness", 0) for r in all_reviews) / len(all_reviews)
 
             space["avg_rating"] = round(avg_rating, 1)
             space["avg_silence"] = round(avg_silence, 1)
             space["avg_crowdedness"] = round(avg_crowdedness, 1)
-            # Get total review count (not just the 5 we fetched)
-            all_reviews = list(mongo.db.reviews.find({"space_id": str(space["_id"])}))
-            space["review_count"] = len(all_reviews)
-            space["last_updated"] = reviews[0]["timestamp"]
+            space["last_updated"] = max((r.get("timestamp") for r in all_reviews if r.get("timestamp")), default=None)
 
-            # Get recent reviews with display names
+            # Sort reviews by votes (net votes = upvotes - downvotes), then by timestamp
+            for review in all_reviews:
+                review["net_votes"] = review.get("upvotes", 0) - review.get("downvotes", 0)
+            # Use a very old datetime for sorting if timestamp is missing
+            min_datetime = datetime(1970, 1, 1)
+            all_reviews.sort(key=lambda x: (x["net_votes"], x.get("timestamp", min_datetime)), reverse=True)
+            
+            # Get top 5 reviews (by votes)
+            top_reviews = all_reviews[:5]
+
+            # Get user's votes for these reviews
+            user_votes = {}
+            if user_email:
+                review_ids = [str(r["_id"]) for r in top_reviews]
+                votes = list(mongo.db.review_votes.find({
+                    "review_id": {"$in": review_ids},
+                    "user_email": user_email
+                }))
+                for vote in votes:
+                    user_votes[vote["review_id"]] = vote["vote_type"]
+
+            # Get recent reviews with display names and vote info
             recent_reviews = []
-            for review in reviews:
+            for review in top_reviews:
                 reporter_email = review.get("reporter_email")
                 display_name = (
                     get_display_name_for_email(reporter_email)
@@ -349,10 +370,15 @@ def index():
                 )
                 recent_reviews.append(
                     {
+                        "_id": str(review["_id"]),
                         "review": review.get("review", ""),
                         "reported_by": display_name,
                         "timestamp": review.get("timestamp"),
                         "rating": review.get("rating"),
+                        "upvotes": review.get("upvotes", 0),
+                        "downvotes": review.get("downvotes", 0),
+                        "net_votes": review.get("net_votes", 0),
+                        "user_vote": user_votes.get(str(review["_id"])) if user_email else None,
                     }
                 )
             space["recent_reviews"] = recent_reviews
@@ -441,12 +467,32 @@ def get_space(space_id):
     if space:
         space["_id"] = str(space["_id"])
 
-        # Get all reviews for this space
-        reviews = list(
-            mongo.db.reviews.find({"space_id": space_id})
-            .sort("timestamp", -1)
-            .limit(20)
-        )
+        # Get all reviews for this space, sorted by votes
+        all_reviews = list(mongo.db.reviews.find({"space_id": space_id}))
+        
+        # Sort by votes (net votes = upvotes - downvotes), then by timestamp
+        for review in all_reviews:
+            review["net_votes"] = review.get("upvotes", 0) - review.get("downvotes", 0)
+        # Use a very old datetime for sorting if timestamp is missing
+        min_datetime = datetime(1970, 1, 1)
+        all_reviews.sort(key=lambda x: (x["net_votes"], x.get("timestamp", min_datetime)), reverse=True)
+        reviews = all_reviews[:20]  # Limit to 20
+
+        # Get user's email if logged in
+        user_email = None
+        if current_user.is_authenticated:
+            user_email = current_user.email
+
+        # Get user's votes for these reviews
+        user_votes = {}
+        if user_email:
+            review_ids = [str(r["_id"]) for r in reviews]
+            votes = list(mongo.db.review_votes.find({
+                "review_id": {"$in": review_ids},
+                "user_email": user_email
+            }))
+            for vote in votes:
+                user_votes[vote["review_id"]] = vote["vote_type"]
 
         for review in reviews:
             review["_id"] = str(review["_id"])
@@ -456,6 +502,15 @@ def get_space(space_id):
                 display_name = get_display_name_for_email(reporter_email)
                 if display_name:
                     review["reported_by"] = display_name
+            
+            # Add vote counts
+            review["upvotes"] = review.get("upvotes", 0)
+            review["downvotes"] = review.get("downvotes", 0)
+            review["net_votes"] = review.get("net_votes", review["upvotes"] - review["downvotes"])
+            
+            # Add user's vote status if logged in
+            if user_email:
+                review["user_vote"] = user_votes.get(str(review["_id"]))
 
         # Calculate averages
         if reviews:
@@ -494,6 +549,7 @@ def add_space():
     space = {
         "building": data.get("building"),
         "sublocation": data.get("sublocation"),
+        "created_by": current_user.email,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
@@ -594,6 +650,8 @@ def submit_review():
         "review": data.get("review", ""),
         "reported_by": current_user.netid,
         "reporter_email": current_user.email,
+        "upvotes": 0,
+        "downvotes": 0,
         "timestamp": datetime.utcnow(),
     }
 
@@ -605,15 +663,46 @@ def submit_review():
 
 @app.route("/api/reviews", methods=["GET"])
 def get_reviews():
-    """API endpoint to get all reviews (most recent first)"""
+    """API endpoint to get all reviews (sorted by votes, then timestamp)"""
     space_id = request.args.get("space_id")
     limit = int(request.args.get("limit", 50))
+    sort_by = request.args.get("sort", "votes")  # "votes" or "timestamp"
 
     query = {}
     if space_id:
         query["space_id"] = space_id
 
-    reviews = list(mongo.db.reviews.find(query).sort("timestamp", -1).limit(limit))
+    # Get current user's email if logged in
+    user_email = None
+    if current_user.is_authenticated:
+        user_email = current_user.email
+
+    # Fetch reviews
+    if sort_by == "votes":
+        # Sort by net votes (upvotes - downvotes) descending, then by timestamp
+        reviews_cursor = mongo.db.reviews.find(query)
+        reviews = list(reviews_cursor)
+        # Calculate net votes and sort
+        for review in reviews:
+            review["net_votes"] = review.get("upvotes", 0) - review.get("downvotes", 0)
+        # Use a very old datetime for sorting if timestamp is missing
+        min_datetime = datetime(1970, 1, 1)
+        reviews.sort(key=lambda x: (x["net_votes"], x.get("timestamp", min_datetime)), reverse=True)
+        reviews = reviews[:limit]
+    else:
+        # Sort by timestamp descending
+        reviews = list(mongo.db.reviews.find(query).sort("timestamp", -1).limit(limit))
+
+    # Get user's votes for these reviews
+    user_votes = {}
+    if user_email:
+        review_ids = [str(review["_id"]) for review in reviews]
+        votes = list(mongo.db.review_votes.find({
+            "review_id": {"$in": review_ids},
+            "user_email": user_email
+        }))
+        for vote in votes:
+            user_votes[vote["review_id"]] = vote["vote_type"]
 
     for review in reviews:
         review["_id"] = str(review["_id"])
@@ -623,8 +712,115 @@ def get_reviews():
             display_name = get_display_name_for_email(reporter_email)
             if display_name:
                 review["reported_by"] = display_name
+        
+        # Add vote counts (default to 0 if not present)
+        review["upvotes"] = review.get("upvotes", 0)
+        review["downvotes"] = review.get("downvotes", 0)
+        review["net_votes"] = review.get("net_votes", review["upvotes"] - review["downvotes"])
+        
+        # Add user's vote status if logged in
+        if user_email:
+            review["user_vote"] = user_votes.get(str(review["_id"]))
 
     return jsonify(reviews)
+
+
+@app.route("/api/reviews/<review_id>/upvote", methods=["POST"])
+@login_required
+def upvote_review(review_id):
+    """API endpoint to upvote a review (requires authentication)"""
+    try:
+        query = {"_id": ObjectId(review_id)}
+    except (InvalidId, TypeError):
+        return jsonify({"error": "Invalid review ID"}), 400
+
+    # Check if review exists
+    review = mongo.db.reviews.find_one(query)
+    if not review:
+        return jsonify({"error": "Review not found"}), 404
+
+    user_email = current_user.email
+
+    # Check if user already voted
+    existing_vote = mongo.db.review_votes.find_one({
+        "review_id": review_id,
+        "user_email": user_email
+    })
+
+    if existing_vote:
+        if existing_vote["vote_type"] == "upvote":
+            # Already upvoted, remove the upvote
+            mongo.db.review_votes.delete_one({"_id": existing_vote["_id"]})
+            mongo.db.reviews.update_one(query, {"$inc": {"upvotes": -1}})
+            return jsonify({"message": "Upvote removed", "action": "removed"}), 200
+        else:
+            # User had downvoted, change to upvote
+            mongo.db.review_votes.update_one(
+                {"_id": existing_vote["_id"]},
+                {"$set": {"vote_type": "upvote", "timestamp": datetime.utcnow()}}
+            )
+            mongo.db.reviews.update_one(query, {"$inc": {"upvotes": 1, "downvotes": -1}})
+            return jsonify({"message": "Changed to upvote", "action": "upvoted"}), 200
+    else:
+        # New upvote
+        vote = {
+            "review_id": review_id,
+            "user_email": user_email,
+            "vote_type": "upvote",
+            "timestamp": datetime.utcnow()
+        }
+        mongo.db.review_votes.insert_one(vote)
+        mongo.db.reviews.update_one(query, {"$inc": {"upvotes": 1}})
+        return jsonify({"message": "Review upvoted", "action": "upvoted"}), 200
+
+
+@app.route("/api/reviews/<review_id>/downvote", methods=["POST"])
+@login_required
+def downvote_review(review_id):
+    """API endpoint to downvote a review (requires authentication)"""
+    try:
+        query = {"_id": ObjectId(review_id)}
+    except (InvalidId, TypeError):
+        return jsonify({"error": "Invalid review ID"}), 400
+
+    # Check if review exists
+    review = mongo.db.reviews.find_one(query)
+    if not review:
+        return jsonify({"error": "Review not found"}), 404
+
+    user_email = current_user.email
+
+    # Check if user already voted
+    existing_vote = mongo.db.review_votes.find_one({
+        "review_id": review_id,
+        "user_email": user_email
+    })
+
+    if existing_vote:
+        if existing_vote["vote_type"] == "downvote":
+            # Already downvoted, remove the downvote
+            mongo.db.review_votes.delete_one({"_id": existing_vote["_id"]})
+            mongo.db.reviews.update_one(query, {"$inc": {"downvotes": -1}})
+            return jsonify({"message": "Downvote removed", "action": "removed"}), 200
+        else:
+            # User had upvoted, change to downvote
+            mongo.db.review_votes.update_one(
+                {"_id": existing_vote["_id"]},
+                {"$set": {"vote_type": "downvote", "timestamp": datetime.utcnow()}}
+            )
+            mongo.db.reviews.update_one(query, {"$inc": {"upvotes": -1, "downvotes": 1}})
+            return jsonify({"message": "Changed to downvote", "action": "downvoted"}), 200
+    else:
+        # New downvote
+        vote = {
+            "review_id": review_id,
+            "user_email": user_email,
+            "vote_type": "downvote",
+            "timestamp": datetime.utcnow()
+        }
+        mongo.db.review_votes.insert_one(vote)
+        mongo.db.reviews.update_one(query, {"$inc": {"downvotes": 1}})
+        return jsonify({"message": "Review downvoted", "action": "downvoted"}), 200
 
 
 @app.route("/request-space")
@@ -738,6 +934,7 @@ def approve_space_request(request_id):
     space = {
         "building": space_request["building"],
         "sublocation": space_request["sublocation"],
+        "created_by": space_request.get("requested_by", current_user.email),
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
