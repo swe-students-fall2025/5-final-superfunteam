@@ -82,13 +82,14 @@ def test_create_collections_and_indexes():
 def test_create_collections_and_indexes_skips_existing_collections():
     """If collections exist, should not try to create them"""
     mock_db = MagicMock()
-    # Include all three collections that db_schema creates
-    mock_db.list_collection_names.return_value = ["study_spaces", "reviews", "study_space_requests"]
+    # Include all collections that db_schema creates (including review_votes)
+    mock_db.list_collection_names.return_value = ["study_spaces", "reviews", "study_space_requests", "review_votes"]
     
     # Mock the collection objects for index creation
     mock_db.study_spaces = MagicMock()
     mock_db.reviews = MagicMock()
     mock_db.study_space_requests = MagicMock()
+    mock_db.review_votes = MagicMock()
 
     with patch("db_schema.get_db_connection", return_value=mock_db):
         db_schema.create_collections_and_indexes()
