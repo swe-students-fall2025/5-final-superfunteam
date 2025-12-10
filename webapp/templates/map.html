@@ -23,6 +23,11 @@
                        class="map-link-btn">
                         <span>📍</span> View on Google Maps
                     </a>
+                    {% if is_admin %}
+                    <button class="delete-btn" onclick="deleteSpace('{{ space._id }}', '{{ space.building }} - {{ space.sublocation }}')" title="Delete study space">
+                        Delete
+                    </button>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -160,6 +165,54 @@
         padding: 1.25rem;
     }
 }
+
+.delete-btn {
+    padding: 0.75rem 1rem;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Delete space function (admin only)
+    async function deleteSpace(spaceId, spaceName) {
+        if (!confirm(`Are you sure you want to delete "${spaceName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/spaces/${spaceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                alert('Study space deleted successfully!');
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Error deleting space: ' + (data.error || 'Please try again.'));
+            }
+        } catch (error) {
+            alert('Error deleting space: ' + error.message);
+        }
+    }
+</script>
 {% endblock %}
 

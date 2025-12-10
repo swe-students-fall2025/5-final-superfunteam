@@ -60,13 +60,14 @@ login_manager.login_view = "login_page"
 
 # User class for Flask-Login
 class User(UserMixin):
-    def __init__(self, email, user_id=None, display_name=None):
+    def __init__(self, email, user_id=None, display_name=None, is_admin=False):
         self.id = user_id or email  # Use email as ID
         self.email = email
         self.netid = (
             email.split("@")[0] if "@" in email else email
         )  # Extract netid from email
         self.display_name = display_name
+        self.is_admin = is_admin
 
 
 @login_manager.user_loader
@@ -89,6 +90,7 @@ def load_user(user_id):
                 email=user["email"],
                 user_id=str(user.get("_id", user["email"])),
                 display_name=user.get("display_name"),
+                is_admin=user.get("is_admin", False),
             )
     return None
 
@@ -108,6 +110,17 @@ def get_display_name_for_email(email):
     if user:
         return user.get("display_name") or user.get("netid")
     return None
+
+
+def admin_required(f):
+    """Decorator to require admin privileges for a route"""
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.route("/api/register", methods=["POST"])
@@ -178,6 +191,7 @@ def login():
         email=user["email"],
         user_id=str(user["_id"]),
         display_name=user.get("display_name"),
+        is_admin=user.get("is_admin", False),
     )
     login_user(user_obj)
 
@@ -197,8 +211,9 @@ def login():
 def get_current_user():
     """Get current authenticated user information"""
     # Fetch fresh user data from database
-    user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
-    if not user:
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+    except (InvalidId, TypeError):
         # Fallback to email if ObjectId fails
         user = mongo.db.users.find_one({"email": current_user.email})
 
@@ -207,6 +222,7 @@ def get_current_user():
             "email": current_user.email,
             "netid": current_user.netid,
             "display_name": user.get("display_name") if user else None,
+            "is_admin": user.get("is_admin", False) if user else False,
         }
     )
 
@@ -287,6 +303,16 @@ def logout():
 def index():
     """Home page showing all study spaces with their average ratings"""
     spaces = list(mongo.db.study_spaces.find())
+    
+    # Check if current user is admin
+    is_admin = False
+    if current_user.is_authenticated:
+        try:
+            user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+        except (InvalidId, TypeError):
+            user = mongo.db.users.find_one({"email": current_user.email})
+        if user:
+            is_admin = user.get("is_admin", False)
 
     # Get average ratings and recent reviews for each space
     for space in spaces:
@@ -342,12 +368,22 @@ def index():
             space["reported_by"] = None
             space["recent_reviews"] = []
 
-    return render_template("index.html", spaces=spaces)
+    return render_template("index.html", spaces=spaces, is_admin=is_admin)
 
 
 @app.route("/add-space")
+@login_required
 def add_space_page():
-    """Page for manually adding a new study space"""
+    """Page for manually adding a new study space (admin only)"""
+    # Check if user is admin
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+    except (InvalidId, TypeError):
+        user = mongo.db.users.find_one({"email": current_user.email})
+    
+    if not user or not user.get("is_admin", False):
+        return redirect(url_for("index"))
+    
     return render_template("add_space.html")
 
 
@@ -355,6 +391,16 @@ def add_space_page():
 def map_page():
     """Page showing study spaces on Google Maps"""
     spaces = list(mongo.db.study_spaces.find())
+    
+    # Check if current user is admin
+    is_admin = False
+    if current_user.is_authenticated:
+        try:
+            user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+        except (InvalidId, TypeError):
+            user = mongo.db.users.find_one({"email": current_user.email})
+        if user:
+            is_admin = user.get("is_admin", False)
 
     # Format spaces for display
     for space in spaces:
@@ -364,7 +410,7 @@ def map_page():
             f"{space.get('building', '')} {space.get('sublocation', '')} NYU"
         )
 
-    return render_template("map.html", spaces=spaces)
+    return render_template("map.html", spaces=spaces, is_admin=is_admin)
 
 
 @app.route("/api/spaces", methods=["GET"])
@@ -432,8 +478,9 @@ def get_space(space_id):
 
 
 @app.route("/api/spaces", methods=["POST"])
+@admin_required
 def add_space():
-    """API endpoint to add a new study space"""
+    """API endpoint to add a new study space (admin only)"""
     data = request.get_json()
 
     if not data or "building" not in data or "sublocation" not in data:
@@ -523,8 +570,9 @@ def update_space(space_id):
 
 
 @app.route("/api/spaces/<space_id>", methods=["DELETE"])
+@admin_required
 def delete_space(space_id):
-    """API endpoint to delete a study space"""
+    """API endpoint to delete a study space (admin only)"""
     try:
         query = {"_id": ObjectId(space_id)}
     except (InvalidId, TypeError):
