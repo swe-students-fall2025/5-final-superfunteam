@@ -500,39 +500,7 @@ def add_space():
     try:
         result = mongo.db.study_spaces.insert_one(space)
         space["_id"] = str(result.inserted_id)
-        space_id = str(result.inserted_id)
 
-        # If silence and crowdedness are provided and user is authenticated, create initial review
-        silence = data.get("silence")
-        crowdedness = data.get("crowdedness")
-        if (
-            silence is not None
-            and crowdedness is not None
-            and current_user.is_authenticated
-        ):
-            try:
-                silence = int(silence)
-                crowdedness = int(crowdedness)
-
-                if 1 <= silence <= 5 and 1 <= crowdedness <= 5:
-                    # Create initial review with default rating (average of silence and crowdedness)
-                    # or use a default rating of 3
-                    initial_rating = 3  # Default rating
-
-                    review = {
-                        "space_id": space_id,
-                        "rating": initial_rating,
-                        "silence": silence,
-                        "crowdedness": crowdedness,
-                        "review": f"Initial review for {data.get('building')} - {data.get('sublocation')}",
-                        "reported_by": current_user.netid,
-                        "reporter_email": current_user.email,
-                        "timestamp": datetime.utcnow(),
-                    }
-                    mongo.db.reviews.insert_one(review)
-            except (ValueError, TypeError):
-                # Invalid values, skip review creation
-                pass
 
         return jsonify(space), 201
     except Exception as e:
