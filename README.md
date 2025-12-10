@@ -66,7 +66,7 @@ docker-compose up --build
 ```
 
 4. **Access the application**:
-   - Web App: http://localhost:5000
+   - Web App: http://localhost:5001
    - MongoDB: localhost:27017
 
 5. **Stop the application**:
@@ -112,7 +112,7 @@ To populate the database with sample study spaces:
 docker-compose up -d
 
 # Add sample study spaces via API
-curl -X POST http://localhost:5000/api/spaces \
+curl -X POST http://localhost:5001/api/spaces \
   -H "Content-Type: application/json" \
   -d '{
     "building": "Bobst Library",
@@ -120,7 +120,7 @@ curl -X POST http://localhost:5000/api/spaces \
   }'
 
 # Add a review (requires authentication)
-curl -X POST http://localhost:5000/api/reviews \
+curl -X POST http://localhost:5001/api/reviews \
   -H "Content-Type: application/json" \
   -H "Cookie: session=YOUR_SESSION_COOKIE" \
   -d '{
